@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Scan Detail – DermoScan{% endblock %}
+
+{% block extra_css %}
+.result-wrapper { max-width: 900px; margin: 0 auto; }
+.result-top     { display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; }
+.uploaded-img   { width: 260px; flex-shrink: 0; border-radius: 16px; overflow: hidden;
+                  box-shadow: 0 12px 32px rgba(0,0,0,.12); }
+.uploaded-img img{ width: 100%; display: block; }
+.result-info    { flex: 1; min-width: 240px; }
+.result-tag     { font-size: 11px; font-weight: 700; color: var(--text-muted);
+                  text-transform: uppercase; letter-spacing: 1.2px; }
+.result-disease { font-size: 34px; font-weight: 800; color: var(--text); margin: 6px 0 20px; }
+.conf-score     { font-size: 26px; font-weight: 800; color: var(--purple); }
+.bar-row        { margin-bottom: 12px; }
+.bar-label      { display: flex; justify-content: space-between; font-size: 12px;
+                  color: #666; margin-bottom: 4px; }
+.bar-pct        { font-weight: 600; color: var(--purple); }
+.action-row     { display: flex; gap: 14px; margin-top: 28px; flex-wrap: wrap; }
+.meta-row       { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 20px; }
+.meta-item      { font-size: 13px; color: var(--text-muted); }
+.meta-item strong { color: var(--text); }
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div class="topbar-title">
+        <h1>Scan Detail</h1>
+        <p>Full result breakdown for scan #{{ scan.id }}</p>
+    </div>
+    <div class="user-pill">
+        <span>{{ user.full_name }}</span>
+        <div class="avatar">{{ user.initials }}</div>
+    </div>
+</div>
+
+<div class="result-wrapper">
+    <div class="card no-hover">
+        <div class="meta-row">
+            <div class="meta-item"><strong>Date:</strong> {{ scan.created_at.strftime('%d %B %Y, %I:%M %p') }}</div>
+            <div class="meta-item"><strong>Scan ID:</strong> #{{ scan.id }}</div>
+            <div class="meta-item">
+                <strong>Status:</strong>
+                <span class="badge badge-{{ scan.badge_color }}">{{ scan.predicted_class|capitalize }}</span>
+            </div>
+        </div>
+
+        <div class="result-top">
+            <!-- Image -->
+            <div class="uploaded-img">
+                <img src="{{ image_url }}" alt="Scanned skin image">
+            </div>
+
+            <!-- Details -->
+            <div class="result-info">
+                <div class="result-tag">AI Detection Result</div>
+                <div class="result-disease">{{ scan.predicted_class|capitalize }}</div>
+
+                <div class="flex-between" style="margin-bottom:8px;">
+                    <span style="font-size:14px;color:#555;">Confidence Score</span>
+                    <span class="conf-score">{{ scan.confidence_pct }}%</span>
+                </div>
+                <div class="progress-wrap" style="margin-bottom:24px;">
+                    <div class="progress-fill progress-purple" id="mainBar" style="width:0%"></div>
+                </div>
+
+                <!-- Class probabilities -->
+                {% if scan.scores_dict %}
+                <div class="section-title" style="font-size:14px;margin-bottom:12px;">Class Probabilities</div>
+                {% for cls, pct in scan.scores_dict.items()|sort(attribute='1', reverse=True) %}
+                <div class="bar-row">
+                    <div class="bar-label">
+                        <span>{{ cls|capitalize }}</span>
+                        <span class="bar-pct">{{ pct }}%</span>
+                    </div>
+                    <div class="progress-wrap">
+                        <div class="progress-fill {{ 'progress-purple' if cls == scan.predicted_class else 'progress-teal' }}"
+                             data-width="{{ pct }}" style="width:0%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="action-row">
+            <a href="{{ url_for('analysis') }}" class="btn btn-teal">
+                <i class="fas fa-camera"></i> New Scan
+            </a>
+            <a href="{{ url_for('report_scan', scan_id=scan.id) }}" class="btn btn-primary">
+                <i class="fas fa-file-pdf"></i> Download PDF
+            </a>
+            <a href="{{ url_for('history') }}" class="btn btn-outline">
+                <i class="fas fa-history"></i> Back to History
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    window.addEventListener('load', () => {
+        document.getElementById('mainBar').style.width = '{{ scan.confidence_pct }}%';
+        document.querySelectorAll('.progress-fill[data-width]').forEach(bar => {
+            setTimeout(() => bar.style.width = bar.dataset.width + '%', 150);
+        });
+    });
+</script>
+{% endblock %}

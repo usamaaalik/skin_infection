@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}My Profile – DermoScan{% endblock %}
+
+{% block extra_css %}
+.profile-wrapper { max-width: 680px; margin: 0 auto; }
+.avatar-large    { width: 80px; height: 80px; background: var(--purple); border-radius: 50%;
+                   color: #fff; display: flex; align-items: center; justify-content: center;
+                   font-size: 30px; font-weight: 700; margin-bottom: 16px; }
+.profile-name    { font-size: 22px; font-weight: 700; }
+.profile-email   { color: var(--text-muted); font-size: 13px; }
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div class="topbar-title">
+        <h1>My Profile</h1>
+        <p>Manage your account details.</p>
+    </div>
+    <div class="user-pill">
+        <span>{{ user.full_name }}</span>
+        <div class="avatar">{{ user.initials }}</div>
+        {% if user.is_premium %}<span class="premium-badge">★ Premium</span>{% endif %}
+    </div>
+</div>
+
+<div class="profile-wrapper">
+    <!-- Profile card -->
+    <div class="card no-hover" style="text-align:center;padding:36px;margin-bottom:24px;">
+        <div class="avatar-large" style="margin:0 auto 16px;">{{ user.initials }}</div>
+        <div class="profile-name">{{ user.full_name }}</div>
+        <div class="profile-email">{{ user.email }}</div>
+        <div style="margin-top:12px;">
+            {% if user.is_premium %}
+                <span class="premium-badge" style="font-size:13px;padding:6px 14px;">★ Premium Member</span>
+            {% else %}
+                <span class="badge badge-secondary">Free Plan</span>
+                <a href="{{ url_for('upgrade') }}" class="btn btn-sm btn-outline" style="margin-left:8px;">
+                    <i class="fas fa-crown"></i> Upgrade
+                </a>
+            {% endif %}
+        </div>
+        <div class="text-muted mt-2" style="font-size:12px;">
+            Member since {{ user.created_at.strftime('%B %Y') }}
+        </div>
+    </div>
+
+    <!-- Edit form -->
+    <div class="card no-hover">
+        <div class="section-title">Edit Profile</div>
+        <form method="POST" action="{{ url_for('profile') }}">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>First Name</label>
+                    <input class="form-control" type="text" name="first_name"
+                           value="{{ user.first_name }}" placeholder="First name">
+                </div>
+                <div class="form-group">
+                    <label>Last Name</label>
+                    <input class="form-control" type="text" name="last_name"
+                           value="{{ user.last_name }}" placeholder="Last name">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Email Address <span style="color:#aaa;font-size:11px;">(cannot be changed)</span></label>
+                <input class="form-control" type="email" value="{{ user.email }}" disabled
+                       style="background:#f0f0f0;cursor:not-allowed;">
+            </div>
+            <hr style="border:none;border-top:1px solid var(--border);margin:20px 0;">
+            <div class="section-title" style="font-size:15px;">Change Password</div>
+            <div class="form-group">
+                <label>New Password <span style="color:#aaa;font-size:11px;">(leave blank to keep current)</span></label>
+                <input class="form-control" type="password" name="new_password"
+                       placeholder="••••••••" minlength="6">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full" style="margin-top:8px;">
+                <i class="fas fa-save"></i> Save Changes
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

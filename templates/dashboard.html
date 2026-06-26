@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – DermoScan{% endblock %}
+
+{% block extra_css %}
+.stat-card   { background: var(--card); padding: 22px 26px; border-radius: 16px;
+               box-shadow: 0 4px 16px rgba(0,0,0,.04); display: flex; align-items: center; gap: 18px; }
+.stat-icon   { width: 50px; height: 50px; border-radius: 13px;
+               display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+.stat-num    { font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
+.stat-label  { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+
+.card.primary-card { background: linear-gradient(135deg, var(--purple) 0%, var(--purple-lt) 100%); color:#fff; }
+.card.primary-card .icon-box { background: rgba(255,255,255,.2); color:#fff; }
+.card.primary-card h3,
+.card.primary-card p  { color:#fff; }
+.card.primary-card .arrow { margin-top:18px; display:inline-block; font-weight:700; font-size:14px; }
+
+.scan-row    { display: flex; align-items: center; justify-content: space-between;
+               padding: 12px 0; border-bottom: 1px solid var(--border); }
+.scan-row:last-child { border-bottom: none; }
+.scan-class  { font-weight: 600; font-size: 14px; }
+.scan-date   { font-size: 11px; color: var(--text-muted); }
+.scan-conf   { font-size: 13px; font-weight: 600; color: var(--purple); }
+{% endblock %}
+
+{% block content %}
+<!-- Topbar -->
+<div class="topbar">
+    <div class="topbar-title">
+        <h1>Hello, {{ user.first_name }} 👋</h1>
+        <p>Welcome to your personal skin health hub.</p>
+    </div>
+    <div class="user-pill">
+        <span>{{ user.full_name }}</span>
+        <div class="avatar">{{ user.initials }}</div>
+        {% if user.is_premium %}<span class="premium-badge">★ Premium</span>{% endif %}
+    </div>
+</div>
+
+<!-- Stats row -->
+<div class="grid-4 mb-2">
+    <div class="stat-card">
+        <div class="stat-icon icon-box purple"><i class="fas fa-microscope"></i></div>
+        <div>
+            <div class="stat-num">{{ scan_count }}</div>
+            <div class="stat-label">Total Scans</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon icon-box teal"><i class="fas fa-check-circle"></i></div>
+        <div>
+            <div class="stat-num">{% if user.is_premium %}∞{% else %}{{ [max_free - scan_count, 0]|max }}{% endif %}</div>
+            <div class="stat-label">Scans Remaining</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon icon-box orange"><i class="fas fa-crown"></i></div>
+        <div>
+            <div class="stat-num">{% if user.is_premium %}Pro{% else %}Free{% endif %}</div>
+            <div class="stat-label">Account Tier</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon icon-box blue"><i class="fas fa-calendar-alt"></i></div>
+        <div>
+            <div class="stat-num">{{ user.created_at.strftime('%b %Y') }}</div>
+            <div class="stat-label">Member Since</div>
+        </div>
+    </div>
+</div>
+
+<!-- Action cards -->
+<div class="grid-2 mt-3">
+    <a href="{{ url_for('analysis') }}" style="text-decoration:none;">
+        <div class="card primary-card">
+            <div class="icon-box"><i class="fas fa-camera"></i></div>
+            <h3 style="margin-bottom:8px;font-size:18px;">New Skin Analysis</h3>
+            <p style="font-size:13px;opacity:.9;line-height:1.6;">
+                Upload a photo of your skin concern for an instant AI assessment.
+            </p>
+            <span class="arrow">Start Scan &rarr;</span>
+        </div>
+    </a>
+
+    <a href="{{ url_for('history') }}" style="text-decoration:none;">
+        <div class="card">
+            <div class="icon-box teal"><i class="fas fa-history"></i></div>
+            <h3 style="margin-bottom:8px;font-size:17px;">My Scan History</h3>
+            <p class="text-muted" style="font-size:13px;line-height:1.6;">
+                View your previous results and track changes over time.
+            </p>
+        </div>
+    </a>
+
+    {% if not user.is_premium %}
+    <a href="{{ url_for('upgrade') }}" style="text-decoration:none;">
+        <div class="card">
+            <div class="icon-box orange"><i class="fas fa-crown"></i></div>
+            <h3 style="margin-bottom:8px;font-size:17px;">Upgrade to Premium</h3>
+            <p class="text-muted" style="font-size:13px;line-height:1.6;">
+                Get unlimited scans and detailed reports for your doctor.
+            </p>
+        </div>
+    </a>
+    {% endif %}
+
+    <a href="{{ url_for('feedback') }}" style="text-decoration:none;">
+        <div class="card">
+            <div class="icon-box blue"><i class="fas fa-comment-medical"></i></div>
+            <h3 style="margin-bottom:8px;font-size:17px;">Provide Feedback</h3>
+            <p class="text-muted" style="font-size:13px;line-height:1.6;">
+                Help us improve DermoScan by sharing your experience.
+            </p>
+        </div>
+    </a>
+</div>
+
+<!-- Recent scans -->
+{% if recent_scans %}
+<div class="card no-hover mt-4">
+    <div class="flex-between mb-2">
+        <div class="section-title" style="margin-bottom:0">Recent Scans</div>
+        <a href="{{ url_for('history') }}" class="btn btn-outline btn-sm">View All</a>
+    </div>
+    {% for scan in recent_scans %}
+    <a href="{{ url_for('scan_detail', scan_id=scan.id) }}" style="text-decoration:none;color:inherit;">
+        <div class="scan-row">
+            <div>
+                <div class="scan-class">{{ scan.predicted_class|capitalize }}</div>
+                <div class="scan-date">{{ scan.created_at.strftime('%d %b %Y, %I:%M %p') }}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span class="badge badge-{{ scan.badge_color }}">{{ scan.predicted_class|capitalize }}</span>
+                <span class="scan-conf">{{ scan.confidence_pct }}%</span>
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Usage limit warning -->
+{% if not user.is_premium and scan_count >= max_free %}
+<div class="alert alert-warning mt-3">
+    <i class="fas fa-exclamation-triangle"></i>
+    You've reached your free scan limit. <a href="{{ url_for('upgrade') }}" style="color:var(--purple);font-weight:600;">Upgrade to Premium</a> for unlimited scans.
+</div>
+{% elif not user.is_premium %}
+<div class="text-muted mt-3" style="font-size:12px;text-align:right;">
+    Free plan: {{ scan_count }} / {{ max_free }} scans used
+</div>
+{% endif %}
+{% endblock %}

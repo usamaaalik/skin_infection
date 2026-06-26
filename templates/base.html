@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}DermoScan{% endblock %}</title>
+
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <style>
+        /* ── Reset & Base ─────────────────────────────────────── */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --purple:     #6c5ce7;
+            --purple-lt:  #a29bfe;
+            --teal:       #23d5ab;
+            --teal-dk:    #1ebc96;
+            --bg:         #f4f6f9;
+            --card:       #ffffff;
+            --text:       #333333;
+            --text-muted: #888888;
+            --border:     #eeeeee;
+            --danger:     #ff6b6b;
+            --success:    #00b894;
+            --warning:    #fdcb6e;
+            --info:       #74b9ff;
+        }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text); }
+        a    { text-decoration: none; color: inherit; }
+
+        /* ── Sidebar layout ───────────────────────────────────── */
+        .layout          { display: flex; min-height: 100vh; }
+        .sidebar         { width: 240px; background: var(--card); border-right: 1px solid var(--border);
+                           display: flex; flex-direction: column; padding: 28px 20px; position: fixed;
+                           top: 0; left: 0; height: 100vh; z-index: 100; }
+        .sidebar .logo   { font-size: 22px; font-weight: 700; color: #2b2e4a; margin-bottom: 44px;
+                           display: flex; align-items: center; gap: 10px; }
+        .sidebar .logo span { color: var(--purple); }
+        .nav-link        { padding: 12px 14px; color: #666; border-radius: 10px; margin-bottom: 4px;
+                           display: flex; align-items: center; gap: 14px; transition: .25s; font-size: 14px; }
+        .nav-link:hover,
+        .nav-link.active { background: #f3e5f5; color: var(--purple); font-weight: 600; }
+        .nav-link i      { width: 18px; text-align: center; }
+        .nav-spacer      { flex: 1; }
+        .nav-logout      { color: var(--danger) !important; }
+        .nav-logout:hover{ background: #fff0f0 !important; }
+
+        /* ── Main content ─────────────────────────────────────── */
+        .main-content    { margin-left: 240px; flex: 1; padding: 36px 40px; min-height: 100vh; }
+
+        /* ── Topbar ───────────────────────────────────────────── */
+        .topbar          { display: flex; justify-content: space-between; align-items: center;
+                           margin-bottom: 36px; }
+        .topbar-title h1 { font-size: 26px; color: var(--text); }
+        .topbar-title p  { color: var(--text-muted); font-size: 13px; }
+        .user-pill       { display: flex; align-items: center; gap: 10px; background: var(--card);
+                           padding: 8px 16px; border-radius: 50px;
+                           box-shadow: 0 4px 12px rgba(0,0,0,.06); font-size: 14px; }
+        .avatar          { width: 34px; height: 34px; background: var(--purple); border-radius: 50%;
+                           color: #fff; display: flex; align-items: center; justify-content: center;
+                           font-weight: 700; font-size: 13px; }
+
+        /* ── Flash messages ───────────────────────────────────── */
+        .flash-container { margin-bottom: 24px; }
+        .alert           { padding: 14px 18px; border-radius: 10px; font-size: 14px; margin-bottom: 10px;
+                           display: flex; align-items: center; gap: 10px; }
+        .alert-success   { background: #d4edda; color: #155724; }
+        .alert-danger    { background: #f8d7da; color: #721c24; }
+        .alert-warning   { background: #fff3cd; color: #856404; }
+        .alert-info      { background: #d1ecf1; color: #0c5460; }
+
+        /* ── Cards ────────────────────────────────────────────── */
+        .card            { background: var(--card); padding: 28px; border-radius: 18px;
+                           box-shadow: 0 6px 24px rgba(0,0,0,.04); border: 1px solid transparent;
+                           transition: .25s; }
+        .card:hover      { border-color: var(--purple); transform: translateY(-3px); }
+        .card.no-hover:hover { transform: none; border-color: transparent; }
+        .icon-box        { width: 52px; height: 52px; border-radius: 13px;
+                           display: flex; align-items: center; justify-content: center;
+                           font-size: 22px; margin-bottom: 16px; }
+        .icon-box.purple { background: #f3e5f5; color: var(--purple); }
+        .icon-box.teal   { background: #e0f7f2; color: var(--teal); }
+        .icon-box.orange { background: #fff3e0; color: #ffb74d; }
+        .icon-box.blue   { background: #e3f2fd; color: #2196f3; }
+        .icon-box.red    { background: #fce4ec; color: #e91e63; }
+
+        /* ── Buttons ──────────────────────────────────────────── */
+        .btn             { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px;
+                           border-radius: 10px; border: none; font-weight: 600; font-size: 14px;
+                           cursor: pointer; transition: .25s; font-family: inherit; }
+        .btn-primary     { background: var(--purple); color: #fff; }
+        .btn-primary:hover { background: #5649c0; transform: translateY(-2px); }
+        .btn-teal        { background: var(--teal); color: #fff;
+                           box-shadow: 0 8px 20px rgba(35,213,171,.3); }
+        .btn-teal:hover  { background: var(--teal-dk); transform: translateY(-2px); }
+        .btn-outline     { background: transparent; border: 2px solid var(--purple); color: var(--purple); }
+        .btn-outline:hover { background: var(--purple); color: #fff; }
+        .btn-danger      { background: var(--danger); color: #fff; }
+        .btn-sm          { padding: 8px 16px; font-size: 12px; border-radius: 8px; }
+        .btn-full        { width: 100%; justify-content: center; }
+
+        /* ── Badges ───────────────────────────────────────────── */
+        .badge           { display: inline-block; padding: 4px 10px; border-radius: 20px;
+                           font-size: 11px; font-weight: 600; }
+        .badge-success   { background: #d4edda; color: #155724; }
+        .badge-warning   { background: #fff3cd; color: #856404; }
+        .badge-danger    { background: #f8d7da; color: #721c24; }
+        .badge-info      { background: #d1ecf1; color: #0c5460; }
+        .badge-secondary { background: #e2e3e5; color: #383d41; }
+        .badge-primary   { background: #cce5ff; color: #004085; }
+
+        /* ── Forms ────────────────────────────────────────────── */
+        .form-group      { margin-bottom: 18px; }
+        .form-group label{ display: block; font-size: 12px; color: #666; margin-bottom: 6px; font-weight: 500; }
+        .form-control    { width: 100%; padding: 13px 14px; border: 1px solid #ddd; border-radius: 9px;
+                           background: #f9f9f9; outline: none; font-family: inherit;
+                           font-size: 14px; transition: .25s; }
+        .form-control:focus { border-color: var(--purple); background: #fff;
+                              box-shadow: 0 0 0 4px rgba(108,92,231,.1); }
+        .form-row        { display: flex; gap: 16px; }
+        .form-row .form-group { flex: 1; }
+
+        /* ── Progress bar ─────────────────────────────────────── */
+        .progress-wrap   { width: 100%; height: 8px; background: #f1f5f9; border-radius: 10px; overflow: hidden; }
+        .progress-fill   { height: 100%; border-radius: 10px; transition: width 1s ease-out; }
+        .progress-purple { background: linear-gradient(90deg, var(--purple), var(--purple-lt)); }
+        .progress-teal   { background: linear-gradient(90deg, var(--teal), #81ecec); }
+        .progress-orange { background: linear-gradient(90deg, #fdcb6e, #ffeaa7); }
+
+        /* ── Tables ───────────────────────────────────────────── */
+        .table-wrap      { overflow-x: auto; }
+        table            { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th               { padding: 12px 14px; text-align: left; background: #f8f9fa;
+                           color: var(--text-muted); font-weight: 600; font-size: 11px;
+                           text-transform: uppercase; letter-spacing: .5px; }
+        td               { padding: 14px; border-bottom: 1px solid var(--border); }
+        tr:hover td      { background: #fafafa; }
+
+        /* ── Responsive ───────────────────────────────────────── */
+        @media (max-width: 768px) {
+            .sidebar      { transform: translateX(-100%); }
+            .main-content { margin-left: 0; padding: 20px; }
+        }
+
+        /* ── Utility ──────────────────────────────────────────── */
+        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .mt-1   { margin-top: 8px; }
+        .mt-2   { margin-top: 16px; }
+        .mt-3   { margin-top: 24px; }
+        .mt-4   { margin-top: 32px; }
+        .mb-2   { margin-bottom: 16px; }
+        .text-muted { color: var(--text-muted); font-size: 13px; }
+        .text-center { text-align: center; }
+        .flex   { display: flex; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .gap-2  { gap: 8px; }
+        .section-title { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 20px; }
+
+        /* ── Premium pill ─────────────────────────────────────── */
+        .premium-badge   { background: linear-gradient(90deg, #f6d365, #fda085);
+                           color: #fff; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+<body>
+    {% if session.get('user_id') %}
+    <div class="layout">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="logo"><i class="fas fa-microscope"></i> Dermo<span>Scan</span></div>
+            <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
+            <a href="{{ url_for('analysis') }}" class="nav-link {% if request.endpoint in ['analysis'] %}active{% endif %}">
+                <i class="fas fa-camera-retro"></i> New Scan
+            </a>
+            <a href="{{ url_for('history') }}" class="nav-link {% if request.endpoint in ['history','scan_detail'] %}active{% endif %}">
+                <i class="fas fa-file-medical"></i> My Scans
+            </a>
+            <a href="{{ url_for('profile') }}" class="nav-link {% if request.endpoint == 'profile' %}active{% endif %}">
+                <i class="fas fa-user-circle"></i> Profile
+            </a>
+            <a href="{{ url_for('feedback') }}" class="nav-link {% if request.endpoint == 'feedback' %}active{% endif %}">
+                <i class="fas fa-comment-dots"></i> Feedback
+            </a>
+            {% if session.get('is_admin') %}
+            <a href="{{ url_for('admin_panel') }}" class="nav-link {% if request.endpoint == 'admin_panel' %}active{% endif %}">
+                <i class="fas fa-shield-alt"></i> Admin
+            </a>
+            {% endif %}
+            <div class="nav-spacer"></div>
+            <a href="{{ url_for('logout') }}" class="nav-link nav-logout">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </nav>
+
+        <!-- Main -->
+        <main class="main-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-container">
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">
+                    <i class="fas fa-info-circle"></i> {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    {% else %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div style="position:fixed;top:20px;right:20px;z-index:999;min-width:300px;">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+                <i class="fas fa-info-circle"></i> {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+        {% block auth_content %}{% endblock %}
+    {% endif %}
+
+    <script>
+        // Auto-dismiss flash messages
+        setTimeout(() => {
+            document.querySelectorAll('.alert').forEach(el => {
+                el.style.transition = 'opacity .5s';
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 500);
+            });
+        }, 4000);
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

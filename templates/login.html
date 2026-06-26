@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Login – DermoScan{% endblock %}
+
+{% block extra_css %}
+.auth-page   { display: flex; justify-content: center; align-items: center;
+               min-height: 100vh;
+               background: linear-gradient(135deg, #e0f2f1 0%, #f3e5f5 100%); }
+.auth-box    { width: 900px; max-width: 96vw; background: #fff; border-radius: 20px;
+               box-shadow: 0 20px 60px rgba(0,0,0,.10); display: flex; overflow: hidden; }
+.auth-left   { flex: 1;
+               background: url('https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=800&q=80') center/cover;
+               position: relative; display: flex; align-items: center; justify-content: center;
+               padding: 40px; color: #fff; text-align: center; min-height: 480px; }
+.auth-left::before { content:''; position:absolute; inset:0; background:rgba(35,213,171,.82); z-index:1; }
+.auth-left-content { position: relative; z-index: 2; }
+.auth-left-content h1 { font-size: 34px; font-weight: 700; margin-bottom: 12px; }
+.auth-left-content p  { opacity: .9; font-size: 14px; line-height: 1.7; }
+.auth-right  { flex: 1.2; padding: 52px; display: flex; flex-direction: column; justify-content: center; }
+.auth-right h2  { font-size: 27px; color: #333; margin-bottom: 4px; }
+.auth-subtitle  { color: #888; font-size: 13px; margin-bottom: 32px; }
+.btn-auth    { width: 100%; padding: 15px; background: #23d5ab; color: #fff; border: none;
+               border-radius: 9px; font-weight: 700; cursor: pointer; font-size: 15px;
+               transition: .25s; font-family: inherit; }
+.btn-auth:hover { background: #1ebc96; transform: translateY(-2px); }
+.auth-link   { text-align: center; margin-top: 20px; font-size: 13px; color: #666; }
+.auth-link a { color: #23d5ab; font-weight: 600; }
+.forgot-link { text-align: right; font-size: 12px; margin-top: -10px; margin-bottom: 16px; }
+.forgot-link a { color: var(--purple); }
+@media(max-width:680px){ .auth-left{ display:none; } .auth-right{ padding:36px 24px; } }
+{% endblock %}
+
+{% block auth_content %}
+<div class="auth-page">
+    <div class="auth-box">
+        <div class="auth-left">
+            <div class="auth-left-content">
+                <h1>Welcome Back</h1>
+                <p>Track your skin health journey<br>with AI-powered insights.</p>
+            </div>
+        </div>
+        <div class="auth-right">
+            <h2>Patient Login</h2>
+            <p class="auth-subtitle">Please enter your details to access your dashboard.</p>
+            {% if session.get('pending_verification_email') %}
+            <div class="alert alert-info" style="margin-bottom:16px;">
+                <i class="fas fa-envelope"></i> A confirmation email was sent to {{ session.get('pending_verification_email') }}. Please verify it before logging in.
+            </div>
+            {% endif %}
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="form-group">
+                    <label>Email or Username</label>
+                    <input class="form-control" type="text" name="identifier" placeholder="Email or Username" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input class="form-control" type="password" name="password" placeholder="••••••••" required>
+                </div>
+                <div class="forgot-link"><a href="{{ url_for('forgot_password') }}">Forgot Password?</a></div>
+                <button class="btn-auth" type="submit">Secure Login</button>
+            </form>
+            <div class="auth-link">Don't have an account? <a href="{{ url_for('register') }}">Register Now</a></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

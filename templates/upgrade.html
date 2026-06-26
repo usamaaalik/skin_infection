@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Upgrade to Premium – DermoScan{% endblock %}
+
+{% block extra_css %}
+.upgrade-wrapper { max-width: 720px; margin: 0 auto; }
+.pricing-card    { border-radius: 20px; overflow: hidden; }
+.pricing-header  { background: linear-gradient(135deg, var(--purple), var(--purple-lt));
+                   color: #fff; padding: 36px; text-align: center; }
+.pricing-header .price { font-size: 52px; font-weight: 800; margin: 16px 0 4px; }
+.pricing-header .per   { font-size: 14px; opacity: .8; }
+.pricing-body    { padding: 32px; }
+.feature-list    { list-style: none; margin: 0 0 28px; }
+.feature-list li { padding: 10px 0; border-bottom: 1px solid var(--border);
+                   display: flex; align-items: center; gap: 12px; font-size: 14px; }
+.feature-list li:last-child { border: none; }
+.feature-list .check { color: var(--teal); font-size: 16px; }
+.free-col        { background: #f8f9fa; border-radius: 16px; padding: 24px; text-align: center; }
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div class="topbar-title">
+        <h1>Upgrade to Premium</h1>
+        <p>Unlock unlimited scans and advanced features.</p>
+    </div>
+    <div class="user-pill">
+        <span>{{ user.full_name }}</span>
+        <div class="avatar">{{ user.initials }}</div>
+    </div>
+</div>
+
+<div class="upgrade-wrapper">
+    {% if user.is_premium %}
+    <div class="alert alert-success">
+        <i class="fas fa-crown"></i>
+        You're already a <strong>Premium</strong> member. Enjoy unlimited scans!
+    </div>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-primary">← Back to Dashboard</a>
+    {% else %}
+    <div class="grid-2">
+        <!-- Free plan -->
+        <div class="free-col">
+            <div style="font-size:20px;font-weight:700;margin-bottom:8px;">Free Plan</div>
+            <div style="font-size:40px;font-weight:800;margin:12px 0;">$0</div>
+            <p class="text-muted" style="font-size:13px;margin-bottom:20px;">Your current plan</p>
+            <ul class="feature-list" style="text-align:left;">
+                <li><i class="fas fa-check check"></i> 5 scans total</li>
+                <li><i class="fas fa-check check"></i> Basic AI detection</li>
+                <li><i class="fas fa-times" style="color:#ccc;"></i> <span style="color:#aaa;">Unlimited scans</span></li>
+                <li><i class="fas fa-times" style="color:#ccc;"></i> <span style="color:#aaa;">Priority support</span></li>
+            </ul>
+            <div class="badge badge-secondary">Current Plan</div>
+        </div>
+
+        <!-- Premium plan -->
+        <div class="card pricing-card no-hover" style="padding:0;border: 2px solid var(--purple);">
+            <div class="pricing-header">
+                <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;opacity:.8;">
+                    Recommended
+                </div>
+                <div style="font-size:22px;font-weight:700;margin-top:8px;">Premium Plan</div>
+                <div class="price">$9.99</div>
+                <div class="per">per month</div>
+            </div>
+            <div class="pricing-body">
+                <ul class="feature-list">
+                    <li><i class="fas fa-check check"></i> <strong>Unlimited</strong> scans</li>
+                    <li><i class="fas fa-check check"></i> Advanced AI detection</li>
+                    <li><i class="fas fa-check check"></i> Full scan history</li>
+                    <li><i class="fas fa-check check"></i> Priority support</li>
+                    <li><i class="fas fa-check check"></i> Early access to new features</li>
+                </ul>
+                <form method="POST" action="{{ url_for('upgrade_confirm') }}">
+                    <button type="submit" class="btn btn-primary btn-full" style="font-size:15px;padding:15px;">
+                        <i class="fas fa-crown"></i> Upgrade Now
+                    </button>
+                </form>
+                <p class="text-muted mt-2" style="font-size:11px;text-align:center;">
+                    Demo mode – no payment required
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top:20px;text-align:center;">
+        <a href="{{ url_for('dashboard') }}" class="text-muted" style="font-size:13px;">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

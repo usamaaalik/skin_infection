@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Analysis Result – DermoScan{% endblock %}
+
+{% block extra_css %}
+.result-wrapper { max-width: 900px; margin: 0 auto; }
+.result-top     { display: flex; gap: 32px; align-items: flex-start; }
+.uploaded-img   { width: 280px; flex-shrink: 0; border-radius: 16px; overflow: hidden;
+                  box-shadow: 0 12px 32px rgba(0,0,0,.12); }
+.uploaded-img img{ width: 100%; display: block; }
+
+.result-info    { flex: 1; }
+.result-tag     { font-size: 11px; font-weight: 700; color: var(--text-muted);
+                  text-transform: uppercase; letter-spacing: 1.2px; }
+.result-disease { font-size: 36px; font-weight: 800; color: var(--text); margin: 6px 0 20px; }
+
+.conf-row       { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.conf-score     { font-size: 26px; font-weight: 800; color: var(--purple); }
+
+.bar-row        { margin-bottom: 12px; }
+.bar-label      { display: flex; justify-content: space-between; font-size: 12px;
+                  color: #666; margin-bottom: 4px; }
+.bar-pct        { font-weight: 600; color: var(--purple); }
+
+.disclaimer     { background: #fff7ed; color: #c2410c; padding: 16px; border-radius: 12px;
+                  font-size: 13px; margin-top: 24px; line-height: 1.6;
+                  border-left: 4px solid #fdba74; }
+
+.info-card      { padding: 22px 26px; border-radius: 14px; margin-top: 24px; }
+.info-card.none { background: #d4edda; border-left: 5px solid #28a745; }
+.info-card.moderate { background: #fff3cd; border-left: 5px solid #ffc107; }
+.info-card.high { background: #f8d7da; border-left: 5px solid #dc3545; }
+
+.action-row     { display: flex; gap: 14px; margin-top: 28px; flex-wrap: wrap; }
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div class="topbar-title">
+        <h1>Analysis Result</h1>
+        <p>AI-generated skin infection assessment.</p>
+    </div>
+    <div class="user-pill">
+        <span>{{ user.full_name }}</span>
+        <div class="avatar">{{ user.initials }}</div>
+    </div>
+</div>
+
+<div class="result-wrapper">
+    {% if result.get('mock') %}
+    <div class="alert alert-warning mb-2">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Demo mode:</strong> Model not trained yet. Showing a simulated result.
+        Run <code>python3.11 train_model.py</code> to train the real model.
+    </div>
+    {% endif %}
+
+    <div class="card no-hover">
+        <div class="result-top">
+            <!-- Uploaded image -->
+            <div class="uploaded-img">
+                <img src="{{ image_url }}" alt="Uploaded skin image">
+            </div>
+
+            <!-- Result details -->
+            <div class="result-info">
+                <div class="result-tag">AI Detection Result</div>
+                <div class="result-disease">{{ result.predicted_class|capitalize }}</div>
+
+                <div class="conf-row">
+                    <span style="font-size:14px;color:#555;">Confidence Score</span>
+                    <span class="conf-score">{{ result.confidence_pct }}%</span>
+                </div>
+                <div class="progress-wrap" style="margin-bottom:24px;">
+                    <div class="progress-fill progress-purple" id="mainBar" style="width:0%"></div>
+                </div>
+
+                <!-- All class scores -->
+                <div class="section-title" style="font-size:14px;margin-bottom:12px;">
+                    Class Probabilities
+                </div>
+                {% for cls, pct in result.all_scores.items()|sort(attribute='1', reverse=True) %}
+                <div class="bar-row">
+                    <div class="bar-label">
+                        <span>{{ cls|capitalize }}</span>
+                        <span class="bar-pct">{{ pct }}%</span>
+                    </div>
+                    <div class="progress-wrap">
+                        <div class="progress-fill {{ 'progress-purple' if cls == result.predicted_class else 'progress-teal' }}"
+                             data-width="{{ pct }}" style="width:0%">
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Disease info -->
+        {% if result.info %}
+        {% set info = result.info %}
+        <div class="info-card {{ info.severity }}">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+                <i class="fas {{ info.icon }}" style="font-size:20px;"></i>
+                <strong style="font-size:16px;">About {{ result.predicted_class|capitalize }}</strong>
+            </div>
+            <p style="font-size:13px;color:#555;margin-bottom:10px;line-height:1.7;">{{ info.description }}</p>
+            <p style="font-size:13px;color:#555;line-height:1.7;"><strong>Recommended action:</strong> {{ info.treatment }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Disclaimer -->
+        <div class="disclaimer">
+            <strong><i class="fas fa-exclamation-circle"></i> Medical Disclaimer:</strong>
+            This result is generated by an AI model and is intended for informational purposes only.
+            It is <strong>not a medical diagnosis</strong>. Please consult a certified dermatologist
+            for professional evaluation and treatment.
+        </div>
+
+        <!-- Action buttons -->
+        <div class="action-row">
+            <a href="{{ url_for('analysis') }}" class="btn btn-teal">
+                <i class="fas fa-redo"></i> New Scan
+            </a>
+            <a href="{{ url_for('scan_detail', scan_id=history_id) }}" class="btn btn-outline">
+                <i class="fas fa-eye"></i> View Details
+            </a>
+            <a href="{{ url_for('history') }}" class="btn" style="background:#f1f5f9;color:#555;">
+                <i class="fas fa-history"></i> Scan History
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Animate progress bars
+    window.addEventListener('load', () => {
+        document.getElementById('mainBar').style.width = '{{ result.confidence_pct }}%';
+        document.querySelectorAll('.progress-fill[data-width]').forEach(bar => {
+            setTimeout(() => bar.style.width = bar.dataset.width + '%', 150);
+        });
+    });
+</script>
+{% endblock %}

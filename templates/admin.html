@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel – DermoScan{% endblock %}
+
+{% block extra_css %}
+.stat-card   { background: var(--card); padding: 22px 26px; border-radius: 16px;
+               box-shadow: 0 4px 16px rgba(0,0,0,.04); display: flex; align-items: center; gap: 18px; }
+.stat-icon   { width: 50px; height: 50px; border-radius: 13px;
+               display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+.stat-num    { font-size: 28px; font-weight: 700; line-height: 1; }
+.stat-label  { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+.tab-btns    { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.tab-btn     { padding: 9px 18px; border-radius: 8px; border: 2px solid var(--border);
+               background: var(--card); color: #666; font-size: 13px; font-weight: 600;
+               cursor: pointer; transition: .2s; font-family: inherit; }
+.tab-btn.active { border-color: var(--purple); background: var(--purple); color: #fff; }
+.tab-pane    { display: none; }
+.tab-pane.active { display: block; }
+.scan-thumb  { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; }
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div class="topbar-title">
+        <h1><i class="fas fa-shield-alt"></i> Admin Panel</h1>
+        <p>System overview and management.</p>
+    </div>
+    <div class="user-pill">
+        <span>Admin</span>
+        <div class="avatar" style="background:var(--danger);">A</div>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="grid-4 mb-2">
+    <div class="stat-card">
+        <div class="stat-icon icon-box blue"><i class="fas fa-users"></i></div>
+        <div>
+            <div class="stat-num">{{ total_users }}</div>
+            <div class="stat-label">Total Users</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon icon-box purple"><i class="fas fa-microscope"></i></div>
+        <div>
+            <div class="stat-num">{{ total_scans }}</div>
+            <div class="stat-label">Total Scans</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon icon-box teal"><i class="fas fa-comment-dots"></i></div>
+        <div>
+            <div class="stat-num">{{ feedbacks|length }}</div>
+            <div class="stat-label">Feedback Received</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon icon-box orange"><i class="fas fa-crown"></i></div>
+        <div>
+            <div class="stat-num">{{ users|selectattr('is_premium')|list|length }}</div>
+            <div class="stat-label">Premium Users</div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="tab-btns">
+    <button class="tab-btn active" onclick="showTab('users', this)">
+        <i class="fas fa-users"></i> Users
+    </button>
+    <button class="tab-btn" onclick="showTab('scans', this)">
+        <i class="fas fa-microscope"></i> Recent Scans
+    </button>
+    <button class="tab-btn" onclick="showTab('feedback', this)">
+        <i class="fas fa-comment-dots"></i> Feedback
+    </button>
+</div>
+
+<!-- Users tab -->
+<div id="tab-users" class="tab-pane active card no-hover">
+    <div class="section-title mb-2">All Users ({{ users|length }})</div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Plan</th>
+                    <th>Role</th>
+                    <th>Joined</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td style="color:var(--text-muted);font-size:12px;">{{ u.id }}</td>
+                    <td style="font-weight:600;">{{ u.full_name }}</td>
+                    <td style="font-size:13px;color:var(--text-muted);">{{ u.email }}</td>
+                    <td>
+                        {% if u.is_premium %}
+                            <span class="premium-badge">★ Premium</span>
+                        {% else %}
+                            <span class="badge badge-secondary">Free</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u.is_admin %}
+                            <span class="badge badge-danger">Admin</span>
+                        {% else %}
+                            <span class="badge badge-info">User</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:12px;color:var(--text-muted);">{{ u.created_at.strftime('%d %b %Y') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Scans tab -->
+<div id="tab-scans" class="tab-pane card no-hover">
+    <div class="section-title mb-2">Recent Scans (last 50)</div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Image</th>
+                    <th>User</th>
+                    <th>Detection</th>
+                    <th>Confidence</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for scan in scans %}
+                <tr>
+                    <td style="color:var(--text-muted);font-size:12px;">{{ scan.id }}</td>
+                    <td>
+                        <img class="scan-thumb"
+                             src="{{ url_for('static', filename='uploads/' ~ scan.image_filename) }}"
+                             alt="scan" onerror="this.src='https://via.placeholder.com/44?text=IMG'">
+                    </td>
+                    <td style="font-size:13px;">{{ scan.user.full_name }}</td>
+                    <td><span class="badge badge-{{ scan.badge_color }}">{{ scan.predicted_class|capitalize }}</span></td>
+                    <td style="font-size:13px;font-weight:600;color:var(--purple);">{{ scan.confidence_pct }}%</td>
+                    <td style="font-size:12px;color:var(--text-muted);">{{ scan.created_at.strftime('%d %b %Y') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Feedback tab -->
+<div id="tab-feedback" class="tab-pane card no-hover">
+    <div class="section-title mb-2">User Feedback ({{ feedbacks|length }})</div>
+    {% if feedbacks %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>User</th>
+                    <th>Rating</th>
+                    <th>Message</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fb in feedbacks %}
+                <tr>
+                    <td style="color:var(--text-muted);font-size:12px;">{{ fb.id }}</td>
+                    <td style="font-size:13px;font-weight:600;">{{ fb.user.full_name }}</td>
+                    <td>
+                        <span style="color:#fdcb6e;">
+                            {% for i in range(fb.rating) %}★{% endfor %}{% for i in range(5 - fb.rating) %}<span style="color:#ddd;">★</span>{% endfor %}
+                        </span>
+                    </td>
+                    <td style="font-size:13px;color:#555;max-width:300px;">{{ fb.message }}</td>
+                    <td style="font-size:12px;color:var(--text-muted);">{{ fb.created_at.strftime('%d %b %Y') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:40px;color:var(--text-muted);">
+        <i class="fas fa-comment-slash" style="font-size:40px;margin-bottom:12px;display:block;"></i>
+        No feedback received yet.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function showTab(name, btn) {
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + name).classList.add('active');
+        btn.classList.add('active');
+    }
+</script>
+{% endblock %}

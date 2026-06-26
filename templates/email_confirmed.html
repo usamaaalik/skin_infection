@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Email Verified – DermoScan{% endblock %}
+
+{% block extra_css %}
+.auth-page { display:flex; justify-content:center; align-items:center; min-height:100vh;
+             background: linear-gradient(135deg, #e0f2f1 0%, #f3e5f5 100%); }
+.auth-card { background:#fff; padding:48px; border-radius:20px; width:460px; max-width:94vw;
+             box-shadow: 0 20px 60px rgba(0,0,0,.10); text-align:center; }
+.auth-icon { font-size:54px; color:var(--teal); margin-bottom:20px; }
+.auth-card h2 { font-size:24px; color:#333; margin-bottom:8px; }
+.auth-card p  { color:#888; font-size:14px; margin-bottom:24px; line-height:1.6; }
+.btn-auth  { width:100%; padding:14px; background:var(--teal); color:#fff; border:none;
+             border-radius:9px; font-weight:700; cursor:pointer; font-size:15px;
+             transition:.25s; font-family:inherit; }
+.btn-auth:hover { background:var(--teal-dk); transform:translateY(-2px); }
+{% endblock %}
+
+{% block auth_content %}
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-icon"><i class="fas fa-check-circle"></i></div>
+        <h2>Email Verified</h2>
+        <p>Your email address has been confirmed successfully. You can now sign in to DermoScan and continue your skin analysis journey.</p>
+        <a class="btn-auth" href="{{ url_for('login') }}" style="display:inline-block; text-align:center;">Go to Login</a>
+    </div>
+</div>
+{% endblock %}

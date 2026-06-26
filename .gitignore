@@ -1,0 +1,7 @@
+.venv/
+static/
+test/
+model/
+ui/
+.env
+.dermoscan.db

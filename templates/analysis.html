@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block title %}New Analysis – DermoScan{% endblock %}
+
+{% block extra_css %}
+.upload-wrapper  { max-width: 700px; margin: 0 auto; }
+
+.drop-zone       { border: 2px dashed #cbd5e1; border-radius: 16px; padding: 60px 20px;
+                   background: #f8fafc; text-align: center; cursor: pointer;
+                   transition: .25s; color: #64748b; margin: 28px 0; position: relative; }
+.drop-zone:hover { border-color: var(--purple); background: #f3e5f5; color: var(--purple); }
+.drop-zone.drag  { border-color: var(--teal); background: #e0f7f2; color: var(--teal);
+                   transform: scale(1.01); box-shadow: 0 0 0 4px rgba(35,213,171,.15); }
+.drop-zone .drop-icon { font-size: 48px; margin-bottom: 14px; display: block;
+                        pointer-events: none; }
+.drop-zone p     { font-size: 14px; margin-bottom: 6px; pointer-events: none; }
+.drop-zone small { font-size: 12px; color: #94a3b8; pointer-events: none; }
+
+/* Preview replaces drop zone, but keeps same card space */
+.preview-area    { display: none; margin: 20px 0; text-align: center; }
+.preview-area img{ max-height: 280px; border-radius: 12px;
+                   box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+.preview-meta    { margin-top: 12px; display: flex; align-items: center;
+                   justify-content: center; gap: 12px; flex-wrap: wrap; }
+.preview-name    { font-size: 13px; color: var(--text-muted); }
+.btn-change      { font-size: 12px; padding: 6px 14px; border-radius: 8px;
+                   border: 1.5px solid var(--purple); color: var(--purple);
+                   background: transparent; cursor: pointer; font-family: inherit;
+                   transition: .2s; }
+.btn-change:hover { background: var(--purple); color: #fff; }
+
+.limit-bar-wrap  { background: #f1f5f9; border-radius: 10px; height: 8px; overflow: hidden; margin: 6px 0; }
+.limit-bar       { height: 100%; border-radius: 10px; background: linear-gradient(90deg, var(--teal), var(--purple));
+                   transition: width .6s; }
+
+/* Drag-over overlay on the whole page */
+body.page-drag-over .drop-zone {
+    border-color: var(--teal); background: #e0f7f2; color: var(--teal);
+}
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div class="topbar-title">
+        <h1>New Skin Analysis</h1>
+        <p>Upload a skin image for AI-powered detection.</p>
+    </div>
+    <div class="user-pill">
+        <span>{{ user.full_name }}</span>
+        <div class="avatar">{{ user.initials }}</div>
+    </div>
+</div>
+
+<div class="upload-wrapper">
+    <!-- Usage indicator -->
+    {% if not user.is_premium %}
+    <div class="card no-hover mb-2" style="padding:18px 24px;">
+        <div class="flex-between">
+            <span style="font-size:13px;color:#555;">Free scans used: <strong>{{ scan_count }} / {{ max_free }}</strong></span>
+            <a href="{{ url_for('upgrade') }}" class="btn btn-sm btn-outline">
+                <i class="fas fa-crown"></i> Go Premium
+            </a>
+        </div>
+        <div class="limit-bar-wrap mt-1">
+            <div class="limit-bar" style="width: {{ (scan_count / max_free * 100)|int }}%"></div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card no-hover">
+        <h2 style="font-size:20px;margin-bottom:6px;">Upload Image</h2>
+        <p class="text-muted">Supported formats: JPG, PNG · Max size: 10 MB</p>
+
+        <form id="uploadForm" method="POST" action="{{ url_for('analysis') }}" enctype="multipart/form-data">
+            <div class="drop-zone" id="dropZone">
+                <span class="drop-icon">📸</span>
+                <p>Click to Browse or Drag &amp; Drop your image here</p>
+                <small>JPG or PNG · max 10 MB · clear, well-lit photos work best</small>
+            </div>
+            <input type="file" id="fileInput" name="image" accept=".jpg,.jpeg,.png" hidden>
+
+            <div class="preview-area" id="previewArea">
+                <img id="previewImg" src="" alt="Preview">
+                <div class="preview-meta">
+                    <span class="preview-name" id="previewName"></span>
+                    <button type="button" class="btn-change" id="changeBtn">
+                        <i class="fas fa-sync-alt"></i> Change Image
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-teal btn-full" id="analyzeBtn" disabled
+                    style="font-size:15px;padding:15px;margin-top:4px;">
+                <i class="fas fa-brain"></i>&nbsp; Run Analysis
+            </button>
+        </form>
+
+        <div style="margin-top:18px;text-align:center;">
+            <a href="{{ url_for('dashboard') }}" class="text-muted" style="font-size:13px;">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Tips -->
+    <div class="card no-hover mt-3" style="background:linear-gradient(135deg,#f3e5f5,#e0f2f1);">
+        <div class="section-title" style="font-size:15px;margin-bottom:14px;">
+            <i class="fas fa-lightbulb" style="color:var(--purple);"></i> Photo Tips
+        </div>
+        <ul style="list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;color:#555;">
+            <li><i class="fas fa-check" style="color:var(--teal);margin-right:6px;"></i>Use natural lighting</li>
+            <li><i class="fas fa-check" style="color:var(--teal);margin-right:6px;"></i>Keep camera steady</li>
+            <li><i class="fas fa-check" style="color:var(--teal);margin-right:6px;"></i>Focus on the affected area</li>
+            <li><i class="fas fa-check" style="color:var(--teal);margin-right:6px;"></i>Avoid blurry images</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const dropZone   = document.getElementById('dropZone');
+    const fileInput  = document.getElementById('fileInput');
+    const previewArea= document.getElementById('previewArea');
+    const previewImg = document.getElementById('previewImg');
+    const previewName= document.getElementById('previewName');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const changeBtn  = document.getElementById('changeBtn');
+    const form       = document.getElementById('uploadForm');
+
+    const ACCEPTED = ['image/jpeg', 'image/jpg', 'image/png'];
+
+    // ── Open file picker when drop zone is clicked ──────────────────────────
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    // ── File picker selection ────────────────────────────────────────────────
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length) handleFile(fileInput.files[0]);
+    });
+
+    // ── "Change image" button resets back to drop zone ───────────────────────
+    changeBtn.addEventListener('click', () => {
+        fileInput.value = '';           // clear the input so 'change' fires again
+        previewArea.style.display = 'none';
+        dropZone.style.display    = 'block';
+        analyzeBtn.disabled       = true;
+        analyzeBtn.innerHTML      = '<i class="fas fa-brain"></i>&nbsp; Run Analysis';
+    });
+
+    // ── Drag events on the drop zone ─────────────────────────────────────────
+    dropZone.addEventListener('dragenter', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add('drag');
+    });
+
+    dropZone.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add('drag');
+    });
+
+    dropZone.addEventListener('dragleave', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        // Only remove if we've truly left the drop zone (not entered a child element)
+        if (!dropZone.contains(e.relatedTarget)) {
+            dropZone.classList.remove('drag');
+        }
+    });
+
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('drag');
+        const files = e.dataTransfer.files;
+        if (!files.length) return;
+
+        // Assign the dropped file to the actual file input so the form can submit it
+        try {
+            const dt = new DataTransfer();
+            dt.items.add(files[0]);
+            fileInput.files = dt.files;
+        } catch (err) {
+            // DataTransfer not supported (very old browsers) — fall back gracefully
+            console.warn('DataTransfer assignment not supported:', err);
+        }
+
+        handleFile(files[0]);
+    });
+
+    // ── Prevent browser from opening the file if dropped outside the zone ───
+    document.addEventListener('dragover',  e => e.preventDefault());
+    document.addEventListener('drop',      e => e.preventDefault());
+
+    // ── Core: validate + preview ─────────────────────────────────────────────
+    function handleFile(file) {
+        if (!ACCEPTED.includes(file.type)) {
+            showError('Only JPG and PNG images are accepted.');
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            showError('File is too large. Maximum size is 10 MB.');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = e => {
+            previewImg.src            = e.target.result;
+            previewName.textContent   = `${file.name}  (${(file.size / 1024).toFixed(1)} KB)`;
+            dropZone.style.display    = 'none';
+            previewArea.style.display = 'block';
+            analyzeBtn.disabled       = false;
+        };
+        reader.onerror = () => showError('Could not read the file. Please try again.');
+        reader.readAsDataURL(file);
+    }
+
+    // ── Spinner on submit ────────────────────────────────────────────────────
+    form.addEventListener('submit', e => {
+        analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>&nbsp; Analysing…';
+        analyzeBtn.disabled  = true;
+    });
+
+    // ── Inline error helper ──────────────────────────────────────────────────
+    function showError(msg) {
+        const existing = document.getElementById('upload-error');
+        if (existing) existing.remove();
+        const div = document.createElement('div');
+        div.id = 'upload-error';
+        div.style.cssText = 'background:#f8d7da;color:#721c24;padding:12px 16px;border-radius:10px;font-size:13px;margin-bottom:12px;';
+        div.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${msg}`;
+        form.prepend(div);
+        setTimeout(() => div.remove(), 5000);
+    }
+})();
+</script>
+{% endblock %}

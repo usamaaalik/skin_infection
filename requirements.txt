@@ -1,0 +1,11 @@
+Flask
+Werkzeug
+Pillow
+numpy
+reportlab
+scikit-learn
+matplotlib
+tensorflow
+opencv-python
+supabase==2.11.0
+python-dotenv
