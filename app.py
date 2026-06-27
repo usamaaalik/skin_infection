@@ -323,8 +323,11 @@ def register():
         if not all([first, last, username, password]):
             flash("All fields are required.", "danger")
             return render_template("register.html")
-        if len(password) < 6:
-            flash("Password must be at least 6 characters.", "danger")
+        if len(password) < 8 or not any(c.isupper() for c in password) \
+                or not any(c.islower() for c in password) \
+                or not any(c.isdigit() for c in password) \
+                or not any(c in "!@#$%^&*()-_=+[]{}|;:',.<>?/`~\"\\\" " for c in password):
+            flash("Password must be at least 8 characters and include uppercase, lowercase, a number, and a symbol.", "danger")
             return render_template("register.html")
         if len(username) < 3:
             flash("Username must be at least 3 characters.", "warning")
@@ -599,8 +602,11 @@ def profile():
         if last:
             updates["last_name"] = last
         if new_pass:
-            if len(new_pass) < 6:
-                flash("Password must be at least 6 characters.", "warning")
+            if len(new_pass) < 8 or not any(c.isupper() for c in new_pass) \
+                    or not any(c.islower() for c in new_pass) \
+                    or not any(c.isdigit() for c in new_pass) \
+                    or not any(c in "!@#$%^&*()-_=+[]{}|;:',.<>?/`~\"\\\" " for c in new_pass):
+                flash("Password must be at least 8 characters and include uppercase, lowercase, a number, and a symbol.", "warning")
                 return render_template("profile.html", user=user)
             update_user(user.id, {"password": new_pass})
 

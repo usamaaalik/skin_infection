@@ -176,6 +176,63 @@
         .premium-badge   { background: linear-gradient(90deg, #f6d365, #fda085);
                            color: #fff; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
 
+        /* ── Password toggle ──────────────────────────────────── */
+        .pw-wrap         { position: relative; }
+        .pw-wrap .form-control { padding-right: 44px; }
+        .pw-toggle       { position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+                           background: none; border: none; cursor: pointer; padding: 4px;
+                           color: var(--text-muted); font-size: 15px; line-height: 1;
+                           transition: color .2s; }
+        .pw-toggle:hover { color: var(--purple); }
+
+        /* ── Password strength meter ──────────────────────────── */
+        .pw-strength-wrap {
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height .38s cubic-bezier(.4,0,.2,1),
+                        opacity .28s ease,
+                        margin-top .38s ease;
+            margin-top: 0;
+        }
+        .pw-strength-wrap.visible {
+            max-height: 120px;
+            opacity: 1;
+            margin-top: 10px;
+        }
+        .pw-strength-bar-bg {
+            height: 5px; border-radius: 6px; background: #e9ecef;
+            overflow: hidden; margin-bottom: 8px;
+        }
+        .pw-strength-bar {
+            height: 100%; border-radius: 6px; width: 0%;
+            transition: width .42s cubic-bezier(.4,0,.2,1),
+                        background .3s ease;
+        }
+        .pw-strength-label {
+            font-size: 11px; font-weight: 700; margin-bottom: 6px;
+            transition: color .3s;
+        }
+        .pw-rules {
+            display: flex; flex-wrap: wrap; gap: 5px 12px;
+            padding: 0; list-style: none; margin: 0;
+        }
+        .pw-rules li {
+            font-size: 11px; color: #aaa; display: flex; align-items: center; gap: 5px;
+            transition: color .25s;
+        }
+        .pw-rules li i { font-size: 10px; transition: transform .25s; }
+        .pw-rules li.met { color: #00b894; }
+        .pw-rules li.met i { transform: scale(1.25); }
+
+        @keyframes pwShake {
+            0%,100% { transform: translateX(0); }
+            20%      { transform: translateX(-5px); }
+            40%      { transform: translateX(5px); }
+            60%      { transform: translateX(-4px); }
+            80%      { transform: translateX(4px); }
+        }
+
         {% block extra_css %}{% endblock %}
     </style>
 </head>
@@ -255,6 +312,135 @@
     {% endif %}
 
     <script>
+        // ── Password show/hide toggle ──────────────────────────────────────────
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.pw-toggle');
+            if (!btn) return;
+            const wrap  = btn.closest('.pw-wrap');
+            const input = wrap && wrap.querySelector('input');
+            if (!input) return;
+            const isHidden = input.type === 'password';
+            input.type     = isHidden ? 'text' : 'password';
+            btn.querySelector('i').className = isHidden ? 'fas fa-eye-slash' : 'fas fa-eye';
+            btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+        });
+
+        // ── Password strength meter ────────────────────────────────────────────
+        (function () {
+            const RULES = [
+                { key: 'len',    label: '8+ characters',  test: p => p.length >= 8 },
+                { key: 'upper',  label: 'Uppercase (A-Z)', test: p => /[A-Z]/.test(p) },
+                { key: 'lower',  label: 'Lowercase (a-z)', test: p => /[a-z]/.test(p) },
+                { key: 'digit',  label: 'Number (0-9)',    test: p => /\d/.test(p) },
+                { key: 'symbol', label: 'Symbol (!@#…)',   test: p => /[^A-Za-z0-9]/.test(p) },
+            ];
+
+            const LEVELS = [
+                { label: 'Too weak',    color: '#ff6b6b', pct: 20  },
+                { label: 'Weak',        color: '#fd9644', pct: 40  },
+                { label: 'Fair',        color: '#fdcb6e', pct: 60  },
+                { label: 'Strong',      color: '#26de81', pct: 80  },
+                { label: 'Very strong', color: '#00b894', pct: 100 },
+            ];
+
+            function allMet(val) {
+                return RULES.every(r => r.test(val));
+            }
+
+            function buildMeter(input) {
+                const wrap = input.closest('.pw-wrap');
+                if (!wrap || wrap.querySelector('.pw-strength-wrap')) return;
+
+                // Insert strength block after the .pw-wrap
+                const container = document.createElement('div');
+                container.className = 'pw-strength-wrap';
+                container.innerHTML =
+                    '<div class="pw-strength-label"></div>' +
+                    '<div class="pw-strength-bar-bg"><div class="pw-strength-bar"></div></div>' +
+                    '<ul class="pw-rules">' +
+                    RULES.map(r =>
+                        `<li data-key="${r.key}"><i class="fas fa-circle"></i> ${r.label}</li>`
+                    ).join('') +
+                    '</ul>' +
+                    '<div class="pw-error" style="display:none;font-size:11px;color:#ff6b6b;margin-top:6px;font-weight:600;">' +
+                    '<i class="fas fa-exclamation-circle"></i> Password must meet all requirements above.' +
+                    '</div>';
+
+                wrap.insertAdjacentElement('afterend', container);
+
+                // Block form submit unless all rules pass
+                const form = input.closest('form');
+                if (form) {
+                    form.addEventListener('submit', function (e) {
+                        if (!allMet(input.value)) {
+                            e.preventDefault();
+                            container.classList.add('visible');
+                            container.querySelector('.pw-error').style.display = 'block';
+                            input.focus();
+                            // Shake the bar
+                            const bar = container.querySelector('.pw-strength-bar-bg');
+                            bar.style.animation = 'none';
+                            bar.offsetHeight; // reflow
+                            bar.style.animation = 'pwShake .4s ease';
+                        }
+                    });
+                }
+
+                input.addEventListener('input', function () {
+                    const val   = input.value;
+                    const met   = RULES.filter(r => r.test(val));
+                    const score = met.length;
+                    const level = score === 0 ? LEVELS[0] : LEVELS[Math.min(score - 1, 4)];
+
+                    // Show / hide with slide animation
+                    if (val.length > 0) {
+                        container.classList.add('visible');
+                    } else {
+                        container.classList.remove('visible');
+                        return;
+                    }
+
+                    // Hide inline error once user is typing again
+                    container.querySelector('.pw-error').style.display = 'none';
+
+                    // Bar
+                    const bar = container.querySelector('.pw-strength-bar');
+                    bar.style.width      = level.pct + '%';
+                    bar.style.background = level.color;
+
+                    // Label
+                    const lbl = container.querySelector('.pw-strength-label');
+                    lbl.textContent = allMet(val) ? '✓ Password is strong' : level.label;
+                    lbl.style.color = level.color;
+
+                    // Rule pills
+                    container.querySelectorAll('.pw-rules li').forEach(li => {
+                        const rule = RULES.find(r => r.key === li.dataset.key);
+                        const pass = rule && rule.test(val);
+                        li.classList.toggle('met', !!pass);
+                        li.querySelector('i').className = pass
+                            ? 'fas fa-check-circle'
+                            : 'fas fa-circle';
+                    });
+                });
+            }
+
+            function init() {
+                document.querySelectorAll('input[type="password"]').forEach(input => {
+                    const name = (input.name || '').toLowerCase();
+                    // skip the login password field
+                    if (name === 'password' && document.querySelector('input[name="identifier"]')) return;
+                    buildMeter(input);
+                });
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+        })();
+
         // Auto-dismiss flash messages
         setTimeout(() => {
             document.querySelectorAll('.alert').forEach(el => {
