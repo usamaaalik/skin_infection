@@ -23,8 +23,7 @@ def admin_required(f):
     def decorated(*args, **kwargs):
         if "user_id" not in session:
             return redirect(url_for("auth.login"))
-        # Import here to avoid circular import at module load time
-        from app.services.user_service import get_current_user
+        from dermoscan.services.user_service import get_current_user
         user = get_current_user()
         if not user or not user.is_admin:
             flash("Admin access required.", "danger")

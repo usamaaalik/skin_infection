@@ -7,22 +7,19 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from database import supabase
-from app.config import FREE_REPORT_DAYS
-from app.models import build_scan
-from app.utils import safe_supabase_data
+from dermoscan.config import FREE_REPORT_DAYS
+from dermoscan.models import build_scan
+from dermoscan.utils import safe_supabase_data
 
 
 def get_user_scans(user_id: Optional[str]) -> list:
-    """Return all scans for a user, newest first."""
     if not user_id or not supabase:
         return []
     try:
         response = (
             supabase.table("scan_history")
-            .select("*")
-            .eq("user_id", user_id)
-            .order("created_at", desc=True)
-            .execute()
+            .select("*").eq("user_id", user_id)
+            .order("created_at", desc=True).execute()
         )
         return [s for s in (build_scan(r) for r in safe_supabase_data(response)) if s]
     except Exception:
@@ -34,7 +31,6 @@ def get_user_scan_count(user_id: Optional[str]) -> int:
 
 
 def filter_scans(user_id: str, date_from, date_to) -> list:
-    """Return scans for a user filtered by an optional date range."""
     if not supabase:
         return []
     query = supabase.table("scan_history").select("*").eq("user_id", user_id)
@@ -50,20 +46,13 @@ def filter_scans(user_id: str, date_from, date_to) -> list:
 
 
 def parse_report_dates(user, date_from_str: str, date_to_str: str):
-    """
-    Parse and validate report date params.
-    Returns (date_from, date_to, error_str | None).
-    Free users are restricted to the last FREE_REPORT_DAYS days.
-    """
     today    = datetime.utcnow().date()
     free_min = today - timedelta(days=FREE_REPORT_DAYS - 1)
-
     try:
         date_from = datetime.strptime(date_from_str, "%Y-%m-%d").date() if date_from_str else None
         date_to   = datetime.strptime(date_to_str,   "%Y-%m-%d").date() if date_to_str   else None
     except ValueError:
         return None, None, "Invalid date format."
-
     if not user.is_premium:
         if date_from and date_from < free_min:
             return None, None, (
@@ -72,5 +61,4 @@ def parse_report_dates(user, date_from_str: str, date_to_str: str):
             )
         if date_from is None:
             date_from = free_min
-
     return date_from, date_to, None

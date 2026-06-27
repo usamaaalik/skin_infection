@@ -1,6 +1,5 @@
 """
 DermoScan – In-memory model objects built from Supabase row dicts.
-No ORM – just plain SimpleNamespace wrappers with typed helpers.
 """
 from __future__ import annotations
 
@@ -9,12 +8,10 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 from typing import Optional
 
-from app.utils import build_image_data_url
+from dermoscan.utils import build_image_data_url
 
 
 class AppUser(SimpleNamespace):
-    """Lightweight user object populated from a Supabase users row."""
-
     @property
     def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}".strip()
@@ -29,7 +26,6 @@ class AppUser(SimpleNamespace):
 def build_user(profile: Optional[dict], email: Optional[str] = None) -> Optional[AppUser]:
     if not isinstance(profile, dict) or not profile.get("id"):
         return None
-    created_at = _parse_dt(profile.get("created_at"))
     return AppUser(
         id=profile.get("id"),
         first_name=profile.get("first_name", ""),
@@ -38,21 +34,19 @@ def build_user(profile: Optional[dict], email: Optional[str] = None) -> Optional
         username=profile.get("username", ""),
         is_premium=bool(profile.get("is_premium", False)),
         is_admin=bool(profile.get("is_admin", False)),
-        created_at=created_at,
+        created_at=_parse_dt(profile.get("created_at")),
     )
 
 
 def build_scan(scan_data: Optional[dict]) -> Optional[SimpleNamespace]:
     if not isinstance(scan_data, dict):
         return None
-
-    created_at = _parse_dt(scan_data.get("created_at"), aware=True)
     scan = SimpleNamespace(**scan_data)
-    scan.created_at    = created_at
+    scan.created_at     = _parse_dt(scan_data.get("created_at"), aware=True)
     scan.confidence_pct = round(float(scan.confidence or 0) * 100, 1) if scan.confidence is not None else 0.0
-    scan.badge_color   = _badge_color(getattr(scan, "predicted_class", ""))
-    scan.scores_dict   = _parse_scores(getattr(scan, "all_scores", None))
-    scan.image_url     = _resolve_image_url(scan)
+    scan.badge_color    = _badge_color(getattr(scan, "predicted_class", ""))
+    scan.scores_dict    = _parse_scores(getattr(scan, "all_scores", None))
+    scan.image_url      = _resolve_image_url(scan)
     return scan
 
 
@@ -63,8 +57,6 @@ def build_feedback(feedback_data: Optional[dict]) -> Optional[SimpleNamespace]:
     fb.created_at = _parse_dt(feedback_data.get("created_at"))
     return fb
 
-
-# ── Private helpers ───────────────────────────────────────────────────────────
 
 def _parse_dt(value: Optional[str], aware: bool = False) -> Optional[datetime]:
     if not isinstance(value, str):
@@ -78,13 +70,8 @@ def _parse_dt(value: Optional[str], aware: bool = False) -> Optional[datetime]:
         return None
 
 
-_BADGE_MAP = {
-    "normal":    "success",
-    "acne":      "warning",
-    "eczema":    "info",
-    "psoriasis": "danger",
-    "ringworm":  "secondary",
-}
+_BADGE_MAP = {"normal": "success", "acne": "warning", "eczema": "info",
+              "psoriasis": "danger", "ringworm": "secondary"}
 
 
 def _badge_color(predicted_class: str) -> str:

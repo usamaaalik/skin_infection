@@ -5,16 +5,16 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, flash, make_response, redirect, session, url_for
+from flask import Blueprint, flash, make_response, redirect, request, session, url_for
 
 from report import generate_history_pdf, generate_single_pdf
 from database import supabase
-from app.config import FREE_REPORT_DAYS, UPLOAD_FOLDER
-from app.decorators import login_required
-from app.models import build_scan
-from app.services.scan_service import filter_scans, parse_report_dates
-from app.services.user_service import get_current_user
-from app.utils import safe_supabase_single
+from dermoscan.config import FREE_REPORT_DAYS, UPLOAD_FOLDER
+from dermoscan.decorators import login_required
+from dermoscan.models import build_scan
+from dermoscan.services.scan_service import filter_scans, parse_report_dates
+from dermoscan.services.user_service import get_current_user
+from dermoscan.utils import safe_supabase_single
 
 bp = Blueprint("reports", __name__)
 
@@ -22,16 +22,17 @@ bp = Blueprint("reports", __name__)
 @bp.route("/report/history")
 @login_required
 def report_history():
-    from flask import request
     user = get_current_user()
     if not user:
         session.clear()
         flash("Your session could not be restored. Please log in again.", "warning")
         return redirect(url_for("auth.login"))
 
-    date_from_str = request.args.get("date_from", "").strip()
-    date_to_str   = request.args.get("date_to",   "").strip()
-    date_from, date_to, err = parse_report_dates(user, date_from_str, date_to_str)
+    date_from, date_to, err = parse_report_dates(
+        user,
+        request.args.get("date_from", "").strip(),
+        request.args.get("date_to",   "").strip(),
+    )
     if err:
         flash(err, "warning")
         return redirect(url_for("scan.history"))
@@ -42,12 +43,12 @@ def report_history():
         return redirect(url_for("scan.history"))
 
     pdf_bytes = generate_history_pdf(user, scans, UPLOAD_FOLDER, date_from=date_from, date_to=date_to)
-    response  = make_response(pdf_bytes)
-    response.headers["Content-Type"]        = "application/pdf"
-    response.headers["Content-Disposition"] = (
+    resp = make_response(pdf_bytes)
+    resp.headers["Content-Type"]        = "application/pdf"
+    resp.headers["Content-Disposition"] = (
         f"attachment; filename=dermoscan_report_{user.id}_{datetime.utcnow().strftime('%Y%m%d')}.pdf"
     )
-    return response
+    return resp
 
 
 @bp.route("/report/scan/<int:scan_id>")
@@ -87,9 +88,9 @@ def report_scan(scan_id):
             return redirect(url_for("scan.scan_detail", scan_id=scan_id))
 
     pdf_bytes = generate_single_pdf(user, scan, UPLOAD_FOLDER)
-    response  = make_response(pdf_bytes)
-    response.headers["Content-Type"]        = "application/pdf"
-    response.headers["Content-Disposition"] = (
+    resp = make_response(pdf_bytes)
+    resp.headers["Content-Type"]        = "application/pdf"
+    resp.headers["Content-Disposition"] = (
         f"attachment; filename=dermoscan_scan_{scan_id}_{datetime.utcnow().strftime('%Y%m%d')}.pdf"
     )
-    return response
+    return resp

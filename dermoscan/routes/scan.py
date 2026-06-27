@@ -7,23 +7,19 @@ import base64
 import os
 import tempfile
 import uuid
+from datetime import datetime, timedelta
 
-from flask import (
-    Blueprint, flash, redirect, render_template,
-    request, session, url_for,
-)
+from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from werkzeug.utils import secure_filename
 
 from database import insert_scan_record, supabase
-from app.config import MAX_FREE_SCANS, FREE_REPORT_DAYS
-from app.decorators import login_required
-from app.models import build_scan
-from app.services.scan_service import get_user_scan_count, get_user_scans
-from app.services.user_service import get_current_user
-from app.services.predictor_service import get_predictor
-from app.utils import allowed_file, build_image_data_url, safe_supabase_data, safe_supabase_single
-
-from datetime import datetime, timedelta
+from dermoscan.config import FREE_REPORT_DAYS, MAX_FREE_SCANS
+from dermoscan.decorators import login_required
+from dermoscan.models import build_scan
+from dermoscan.services.predictor_service import get_predictor
+from dermoscan.services.scan_service import get_user_scan_count
+from dermoscan.services.user_service import get_current_user
+from dermoscan.utils import allowed_file, build_image_data_url, safe_supabase_data, safe_supabase_single
 
 bp = Blueprint("scan", __name__)
 
@@ -53,8 +49,8 @@ def analysis():
             flash("Only JPG and PNG files are accepted.", "danger")
             return render_template("analysis.html", user=user, scan_count=scan_count, max_free=MAX_FREE_SCANS)
 
-        ext      = secure_filename(file.filename).rsplit(".", 1)[1].lower()
-        filename = f"{uuid.uuid4().hex}.{ext}"
+        ext       = secure_filename(file.filename).rsplit(".", 1)[1].lower()
+        filename  = f"{uuid.uuid4().hex}.{ext}"
         img_bytes = file.read()
         img_b64   = base64.b64encode(img_bytes).decode("utf-8")
 
@@ -74,13 +70,10 @@ def analysis():
                 pass
 
         try:
-            inserted = insert_scan_record({
-                "user_id":         user.id,
-                "image_filename":  filename,
-                "image_bytes":     img_b64,
-                "predicted_class": result["predicted_class"],
-                "confidence":      result["confidence"],
-                "all_scores":      result["all_scores"],
+            inserted   = insert_scan_record({
+                "user_id": user.id, "image_filename": filename,
+                "image_bytes": img_b64, "predicted_class": result["predicted_class"],
+                "confidence": result["confidence"], "all_scores": result["all_scores"],
             })
             history_id = inserted.get("id") if inserted else None
         except Exception as exc:
@@ -88,11 +81,8 @@ def analysis():
             history_id = None
 
         return render_template(
-            "result.html",
-            user=user,
-            result=result,
-            image_url=build_image_data_url(img_b64, filename),
-            history_id=history_id,
+            "result.html", user=user, result=result,
+            image_url=build_image_data_url(img_b64, filename), history_id=history_id,
         )
 
     return render_template("analysis.html", user=user, scan_count=scan_count, max_free=MAX_FREE_SCANS)
@@ -109,7 +99,6 @@ def history():
 
     date_from_str = request.args.get("date_from", "").strip()
     date_to_str   = request.args.get("date_to",   "").strip()
-
     today         = datetime.utcnow().date()
     free_min_date = today - timedelta(days=FREE_REPORT_DAYS - 1)
 
@@ -136,11 +125,8 @@ def history():
         scans = []
 
     return render_template(
-        "history.html",
-        user=user,
-        scans=scans,
-        date_from=date_from_str,
-        date_to=date_to_str,
+        "history.html", user=user, scans=scans,
+        date_from=date_from_str, date_to=date_to_str,
         free_report_days=FREE_REPORT_DAYS,
         free_min_date=free_min_date.strftime("%Y-%m-%d"),
         today=today.strftime("%Y-%m-%d"),
@@ -170,7 +156,7 @@ def scan_detail(scan_id):
         flash("The requested scan could not be found.", "warning")
         return redirect(url_for("scan.history"))
 
-    image_url = None
+    image_url   = None
     image_bytes = getattr(scan, "image_bytes", None)
     if image_bytes:
         image_url = build_image_data_url(image_bytes, getattr(scan, "image_filename", None))

@@ -1,8 +1,8 @@
 """
 DermoScan – Entry point.
-Imports the application factory and exposes `app` for gunicorn / Flask CLI.
+Exposes `app` for gunicorn (gunicorn app:app) and the Flask CLI.
 """
-from app import create_app
+from dermoscan import create_app
 
 app = create_app()
 

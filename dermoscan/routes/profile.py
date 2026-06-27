@@ -6,9 +6,9 @@ from __future__ import annotations
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 
 from database import update_user
-from app.decorators import login_required
-from app.services.user_service import get_current_user
-from app.utils import validate_password
+from dermoscan.decorators import login_required
+from dermoscan.services.user_service import get_current_user
+from dermoscan.utils import validate_password
 
 bp = Blueprint("profile", __name__)
 

@@ -6,9 +6,9 @@ from __future__ import annotations
 from flask import Blueprint, render_template
 
 from database import list_users, supabase
-from app.decorators import admin_required
-from app.models import build_feedback, build_scan, build_user
-from app.utils import safe_supabase_data
+from dermoscan.decorators import admin_required
+from dermoscan.models import build_feedback, build_scan, build_user
+from dermoscan.utils import safe_supabase_data
 
 bp = Blueprint("admin", __name__)
 
@@ -28,16 +28,13 @@ def admin_panel():
         scans = []
 
     try:
-        fb_resp  = supabase.table("feedback").select("*").order("created_at", desc=True).execute()
+        fb_resp   = supabase.table("feedback").select("*").order("created_at", desc=True).execute()
         feedbacks = [f for f in (build_feedback(r) for r in safe_supabase_data(fb_resp)) if f]
     except Exception:
         feedbacks = []
 
     return render_template(
         "admin.html",
-        users=users,
-        scans=scans,
-        feedbacks=feedbacks,
-        total_scans=len(scans),
-        total_users=len(users),
+        users=users, scans=scans, feedbacks=feedbacks,
+        total_scans=len(scans), total_users=len(users),
     )
