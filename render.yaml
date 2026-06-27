@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: dermoscan
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SITE_URL
+        value: https://your-app-name.onrender.com
+      - key: AUTH_CONFIRM_PATH
+        value: /auth/confirm
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false

@@ -91,16 +91,39 @@ create table public.feedback (
 );
 ```
 
-## Vercel deployment
-This project includes a Vercel-compatible entry point in [api/index.py](api/index.py) and config in [vercel.json](vercel.json).
+## Deployment options
 
-### Required environment variables in Vercel
+### Render deployment
+This project is also prepared for Render. Deployment files are included in [Procfile](Procfile) and [render.yaml](render.yaml).
+
+#### Required environment variables for Render
+- SECRET_KEY
+- SITE_URL
+- AUTH_CONFIRM_PATH
+- SUPABASE_URL
+- SUPABASE_KEY
+- SUPABASE_SERVICE_ROLE_KEY
+
+#### Render deploy steps
+1. Push the repo to GitHub.
+2. Create a new Web Service in Render.
+3. Connect the repository.
+4. Use the start command:
+   ```bash
+   gunicorn app:app
+   ```
+5. Add the environment variables above and deploy.
+
+### Vercel deployment
+This project also includes a Vercel-compatible entry point in [api/index.py](api/index.py) and config in [vercel.json](vercel.json).
+
+#### Required environment variables in Vercel
 - SECRET_KEY
 - SUPABASE_URL
 - SUPABASE_KEY
 - SUPABASE_SERVICE_ROLE_KEY
 
-### Deploy steps
+#### Vercel deploy steps
 1. Push the repo to GitHub.
 2. Import the project in Vercel.
 3. Set the project root correctly.
