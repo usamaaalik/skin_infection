@@ -9,7 +9,7 @@ import os
 import tempfile
 import uuid
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from types import SimpleNamespace
 from typing import Optional
@@ -188,6 +188,9 @@ def _build_scan(scan_data: Optional[dict]) -> Optional[AppUser]:
     if isinstance(created_at, str):
         try:
             created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+            # Ensure always timezone-aware
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
         except ValueError:
             created_at = None
     scan = SimpleNamespace(**scan_data)
@@ -768,8 +771,13 @@ def report_scan(scan_id):
 
     # Free user: only allow report if scan is within FREE_REPORT_DAYS
     if not user.is_premium:
-        cutoff = datetime.utcnow() - timedelta(days=FREE_REPORT_DAYS)
-        if scan.created_at < cutoff:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=FREE_REPORT_DAYS)
+        scan_dt = scan.created_at
+        # Ensure scan_dt is timezone-aware for comparison
+        if scan_dt and scan_dt.tzinfo is None:
+            from datetime import timezone as _tz
+            scan_dt = scan_dt.replace(tzinfo=_tz.utc)
+        if scan_dt and scan_dt < cutoff:
             flash(
                 f"Free accounts can only download reports for scans from the last "
                 f"{FREE_REPORT_DAYS} days. Upgrade to Premium for full access.",
