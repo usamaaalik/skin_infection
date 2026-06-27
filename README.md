@@ -117,21 +117,6 @@ This project is configured for Railway. Deployment files are included in [Procfi
 
 > The `railway.json` file sets the builder to Nixpacks, the start command to `gunicorn app:app`, and configures automatic restarts on failure.
 
-### Vercel deployment
-This project also includes a Vercel-compatible entry point in [api/index.py](api/index.py).
-
-#### Required environment variables in Vercel
-- SECRET_KEY
-- SUPABASE_URL
-- SUPABASE_KEY
-- SUPABASE_SERVICE_ROLE_KEY
-
-#### Vercel deploy steps
-1. Push the repo to GitHub.
-2. Import the project in Vercel.
-3. Set the project root correctly.
-4. Deploy.
-
 ## Notes
 - For serverless hosting, keep the app lightweight and ensure the model fallback path is available.
 - The app uses Supabase for persistence instead of a local database.
