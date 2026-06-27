@@ -71,7 +71,7 @@
 
 <!-- Action cards -->
 <div class="grid-2 mt-3">
-    <a href="{{ url_for('analysis') }}" style="text-decoration:none;">
+    <a href="{{ url_for('scan.analysis') }}" style="text-decoration:none;">
         <div class="card primary-card">
             <div class="icon-box"><i class="fas fa-camera"></i></div>
             <h3 style="margin-bottom:8px;font-size:18px;">New Skin Analysis</h3>
@@ -82,7 +82,7 @@
         </div>
     </a>
 
-    <a href="{{ url_for('history') }}" style="text-decoration:none;">
+    <a href="{{ url_for('scan.history') }}" style="text-decoration:none;">
         <div class="card">
             <div class="icon-box teal"><i class="fas fa-history"></i></div>
             <h3 style="margin-bottom:8px;font-size:17px;">My Scan History</h3>
@@ -93,7 +93,7 @@
     </a>
 
     {% if not user.is_premium %}
-    <a href="{{ url_for('upgrade') }}" style="text-decoration:none;">
+    <a href="{{ url_for('misc.upgrade') }}" style="text-decoration:none;">
         <div class="card">
             <div class="icon-box orange"><i class="fas fa-crown"></i></div>
             <h3 style="margin-bottom:8px;font-size:17px;">Upgrade to Premium</h3>
@@ -104,7 +104,7 @@
     </a>
     {% endif %}
 
-    <a href="{{ url_for('feedback') }}" style="text-decoration:none;">
+    <a href="{{ url_for('misc.feedback') }}" style="text-decoration:none;">
         <div class="card">
             <div class="icon-box blue"><i class="fas fa-comment-medical"></i></div>
             <h3 style="margin-bottom:8px;font-size:17px;">Provide Feedback</h3>
@@ -120,10 +120,10 @@
 <div class="card no-hover mt-4">
     <div class="flex-between mb-2">
         <div class="section-title" style="margin-bottom:0">Recent Scans</div>
-        <a href="{{ url_for('history') }}" class="btn btn-outline btn-sm">View All</a>
+        <a href="{{ url_for('scan.history') }}" class="btn btn-outline btn-sm">View All</a>
     </div>
     {% for scan in recent_scans %}
-    <a href="{{ url_for('scan_detail', scan_id=scan.id) }}" style="text-decoration:none;color:inherit;">
+    <a href="{{ url_for('scan.scan_detail', scan_id=scan.id) }}" style="text-decoration:none;color:inherit;">
         <div class="scan-row">
             <div>
                 <div class="scan-class">{{ scan.predicted_class|capitalize }}</div>
@@ -143,7 +143,7 @@
 {% if not user.is_premium and scan_count >= max_free %}
 <div class="alert alert-warning mt-3">
     <i class="fas fa-exclamation-triangle"></i>
-    You've reached your free scan limit. <a href="{{ url_for('upgrade') }}" style="color:var(--purple);font-weight:600;">Upgrade to Premium</a> for unlimited scans.
+    You've reached your free scan limit. <a href="{{ url_for('misc.upgrade') }}" style="color:var(--purple);font-weight:600;">Upgrade to Premium</a> for unlimited scans.
 </div>
 {% elif not user.is_premium %}
 <div class="text-muted mt-3" style="font-size:12px;text-align:right;">

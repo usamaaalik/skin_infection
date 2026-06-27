@@ -5,4 +5,5 @@ ui/
 .env
 .dermoscan.db
 __pycache__/
+*.pyc
 .vscode/

@@ -292,7 +292,7 @@
 </div>
 
 {# ── Date filter bar ─────────────────────────────────────────────────────── #}
-<form method="GET" action="{{ url_for('history') }}" class="filter-bar" id="filterForm">
+<form method="GET" action="{{ url_for('scan.history') }}" class="filter-bar" id="filterForm">
 
     <div class="filter-group">
         <div class="filter-label"><i class="fas fa-calendar-alt"></i> From</div>
@@ -332,7 +332,7 @@
         <button type="submit" class="btn btn-primary btn-sm">
             <i class="fas fa-filter"></i> Apply
         </button>
-        <a href="{{ url_for('history') }}" class="btn btn-sm"
+        <a href="{{ url_for('scan.history') }}" class="btn btn-sm"
            style="background:#f1f5f9;color:#555;">
             <i class="fas fa-times"></i> Clear
         </a>
@@ -342,7 +342,7 @@
     <div class="free-note">
         <i class="fas fa-lock"></i>
         Free plan: last {{ free_report_days }} days ·
-        <a href="{{ url_for('upgrade') }}" style="color:var(--purple);font-weight:600;">Upgrade</a>
+        <a href="{{ url_for('misc.upgrade') }}" style="color:var(--purple);font-weight:600;">Upgrade</a>
         for full history
     </div>
     {% endif %}
@@ -357,7 +357,7 @@
     {% if date_from %} from <strong>{{ date_from }}</strong>{% endif %}
     {% if date_to %}   to   <strong>{{ date_to }}</strong>{% endif %}
     · <strong>{{ scans|length }}</strong> result{{ 's' if scans|length != 1 }}
-    <a href="{{ url_for('history') }}" style="color:var(--purple);font-weight:600;margin-left:4px;">
+    <a href="{{ url_for('scan.history') }}" style="color:var(--purple);font-weight:600;margin-left:4px;">
         <i class="fas fa-times-circle"></i> Clear
     </a>
 </div>
@@ -371,13 +371,13 @@
             <span id="searchCount"></span>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <a href="{{ url_for('report_history',
+            <a href="{{ url_for('reports.report_history',
                         date_from=date_from if date_from else '',
                         date_to=date_to if date_to else '') }}"
                class="btn btn-sm btn-outline">
                 <i class="fas fa-file-pdf"></i> Download Report
             </a>
-            <a href="{{ url_for('analysis') }}" class="btn btn-teal btn-sm">
+            <a href="{{ url_for('scan.analysis') }}" class="btn btn-teal btn-sm">
                 <i class="fas fa-plus"></i> New Scan
             </a>
         </div>
@@ -447,7 +447,7 @@
                 background:#fff3cd;border-radius:8px;padding:8px 12px;">
         <i class="fas fa-info-circle"></i>
         <strong>Free plan:</strong> PDF reports cover the last {{ free_report_days }} days only.
-        <a href="{{ url_for('upgrade') }}" style="color:var(--purple);font-weight:600;">
+        <a href="{{ url_for('misc.upgrade') }}" style="color:var(--purple);font-weight:600;">
             Upgrade to Premium
         </a> for unlimited downloads.
     </div>
@@ -508,11 +508,11 @@
                     </td>
                     <td data-label="Actions">
                         <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                            <a href="{{ url_for('scan_detail', scan_id=scan.id) }}"
+                            <a href="{{ url_for('scan.scan_detail', scan_id=scan.id) }}"
                                class="btn btn-sm btn-outline">
                                 <i class="fas fa-eye"></i> View
                             </a>
-                            <a href="{{ url_for('report_scan', scan_id=scan.id) }}"
+                            <a href="{{ url_for('reports.report_scan', scan_id=scan.id) }}"
                                class="btn btn-sm" style="background:#f3e5f5;color:var(--purple);"
                                title="Download scan PDF">
                                 <i class="fas fa-file-pdf"></i>
@@ -537,14 +537,14 @@
             <i class="fas fa-search"></i>
             <h3 style="color:#aaa;margin-bottom:10px;">No scans in this range</h3>
             <p class="text-muted">Try a different date range or clear the filter.</p>
-            <a href="{{ url_for('history') }}" class="btn btn-outline mt-3">
+            <a href="{{ url_for('scan.history') }}" class="btn btn-outline mt-3">
                 <i class="fas fa-times"></i> Clear Filter
             </a>
         {% else %}
             <i class="fas fa-file-medical"></i>
             <h3 style="color:#aaa;margin-bottom:10px;">No scans yet</h3>
             <p class="text-muted">Run your first skin analysis to see results here.</p>
-            <a href="{{ url_for('analysis') }}" class="btn btn-teal mt-3">
+            <a href="{{ url_for('scan.analysis') }}" class="btn btn-teal mt-3">
                 <i class="fas fa-camera"></i> Start First Scan
             </a>
         {% endif %}

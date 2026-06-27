@@ -245,28 +245,28 @@
         <!-- Sidebar -->
         <nav class="sidebar" id="sidebar">
             <div class="logo"><i class="fas fa-microscope"></i> Dermo<span>Scan</span></div>
-            <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+            <a href="{{ url_for('dashboard.dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard.dashboard' %}active{% endif %}">
                 <i class="fas fa-home"></i> Dashboard
             </a>
-            <a href="{{ url_for('analysis') }}" class="nav-link {% if request.endpoint in ['analysis'] %}active{% endif %}">
+            <a href="{{ url_for('scan.analysis') }}" class="nav-link {% if request.endpoint in ['scan.analysis'] %}active{% endif %}">
                 <i class="fas fa-camera-retro"></i> New Scan
             </a>
-            <a href="{{ url_for('history') }}" class="nav-link {% if request.endpoint in ['history','scan_detail'] %}active{% endif %}">
+            <a href="{{ url_for('scan.history') }}" class="nav-link {% if request.endpoint in ['scan.history','scan.scan_detail'] %}active{% endif %}">
                 <i class="fas fa-file-medical"></i> My Scans
             </a>
-            <a href="{{ url_for('profile') }}" class="nav-link {% if request.endpoint == 'profile' %}active{% endif %}">
+            <a href="{{ url_for('profile.profile') }}" class="nav-link {% if request.endpoint == 'profile.profile' %}active{% endif %}">
                 <i class="fas fa-user-circle"></i> Profile
             </a>
-            <a href="{{ url_for('feedback') }}" class="nav-link {% if request.endpoint == 'feedback' %}active{% endif %}">
+            <a href="{{ url_for('misc.feedback') }}" class="nav-link {% if request.endpoint == 'misc.feedback' %}active{% endif %}">
                 <i class="fas fa-comment-dots"></i> Feedback
             </a>
             {% if session.get('is_admin') %}
-            <a href="{{ url_for('admin_panel') }}" class="nav-link {% if request.endpoint == 'admin_panel' %}active{% endif %}">
+            <a href="{{ url_for('admin.admin_panel') }}" class="nav-link {% if request.endpoint == 'admin.admin_panel' %}active{% endif %}">
                 <i class="fas fa-shield-alt"></i> Admin
             </a>
             {% endif %}
             <div class="nav-spacer"></div>
-            <a href="{{ url_for('logout') }}" class="nav-link nav-logout">
+            <a href="{{ url_for('auth.logout') }}" class="nav-link nav-logout">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </a>
         </nav>

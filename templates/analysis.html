@@ -56,7 +56,7 @@ body.page-drag-over .drop-zone {
     <div class="card no-hover mb-2" style="padding:18px 24px;">
         <div class="flex-between">
             <span style="font-size:13px;color:#555;">Free scans used: <strong>{{ scan_count }} / {{ max_free }}</strong></span>
-            <a href="{{ url_for('upgrade') }}" class="btn btn-sm btn-outline">
+            <a href="{{ url_for('misc.upgrade') }}" class="btn btn-sm btn-outline">
                 <i class="fas fa-crown"></i> Go Premium
             </a>
         </div>
@@ -70,7 +70,7 @@ body.page-drag-over .drop-zone {
         <h2 style="font-size:20px;margin-bottom:6px;">Upload Image</h2>
         <p class="text-muted">Supported formats: JPG, PNG · Max size: 10 MB</p>
 
-        <form id="uploadForm" method="POST" action="{{ url_for('analysis') }}" enctype="multipart/form-data">
+        <form id="uploadForm" method="POST" action="{{ url_for('scan.analysis') }}" enctype="multipart/form-data">
             <div class="drop-zone" id="dropZone">
                 <span class="drop-icon">📸</span>
                 <p>Click to Browse or Drag &amp; Drop your image here</p>
@@ -95,7 +95,7 @@ body.page-drag-over .drop-zone {
         </form>
 
         <div style="margin-top:18px;text-align:center;">
-            <a href="{{ url_for('dashboard') }}" class="text-muted" style="font-size:13px;">
+            <a href="{{ url_for('dashboard.dashboard') }}" class="text-muted" style="font-size:13px;">
                 <i class="fas fa-arrow-left"></i> Back to Dashboard
             </a>
         </div>

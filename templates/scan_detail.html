@@ -84,13 +84,13 @@
         </div>
 
         <div class="action-row">
-            <a href="{{ url_for('analysis') }}" class="btn btn-teal">
+            <a href="{{ url_for('scan.analysis') }}" class="btn btn-teal">
                 <i class="fas fa-camera"></i> New Scan
             </a>
-            <a href="{{ url_for('report_scan', scan_id=scan.id) }}" class="btn btn-primary">
+            <a href="{{ url_for('reports.report_scan', scan_id=scan.id) }}" class="btn btn-primary">
                 <i class="fas fa-file-pdf"></i> Download PDF
             </a>
-            <a href="{{ url_for('history') }}" class="btn btn-outline">
+            <a href="{{ url_for('scan.history') }}" class="btn btn-outline">
                 <i class="fas fa-history"></i> Back to History
             </a>
         </div>

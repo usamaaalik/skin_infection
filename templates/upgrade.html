@@ -35,7 +35,7 @@
         <i class="fas fa-crown"></i>
         You're already a <strong>Premium</strong> member. Enjoy unlimited scans!
     </div>
-    <a href="{{ url_for('dashboard') }}" class="btn btn-primary">← Back to Dashboard</a>
+    <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-primary">← Back to Dashboard</a>
     {% else %}
     <div class="grid-2">
         <!-- Free plan -->
@@ -70,7 +70,7 @@
                     <li><i class="fas fa-check check"></i> Priority support</li>
                     <li><i class="fas fa-check check"></i> Early access to new features</li>
                 </ul>
-                <form method="POST" action="{{ url_for('upgrade_confirm') }}">
+                <form method="POST" action="{{ url_for('misc.upgrade_confirm') }}">
                     <button type="submit" class="btn btn-primary btn-full" style="font-size:15px;padding:15px;">
                         <i class="fas fa-crown"></i> Upgrade Now
                     </button>
@@ -83,7 +83,7 @@
     </div>
 
     <div style="margin-top:20px;text-align:center;">
-        <a href="{{ url_for('dashboard') }}" class="text-muted" style="font-size:13px;">
+        <a href="{{ url_for('dashboard.dashboard') }}" class="text-muted" style="font-size:13px;">
             <i class="fas fa-arrow-left"></i> Back to Dashboard
         </a>
     </div>
