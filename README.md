@@ -93,29 +93,32 @@ create table public.feedback (
 
 ## Deployment options
 
-### Render deployment
-This project is also prepared for Render. Deployment files are included in [Procfile](Procfile) and [render.yaml](render.yaml).
+### Railway deployment
+This project is configured for Railway. Deployment files are included in [Procfile](Procfile) and [railway.json](railway.json).
 
-#### Required environment variables for Render
+#### Required environment variables for Railway
 - SECRET_KEY
-- SITE_URL
+- SITE_URL (e.g. `https://your-app-name.up.railway.app`)
 - AUTH_CONFIRM_PATH
 - SUPABASE_URL
 - SUPABASE_KEY
 - SUPABASE_SERVICE_ROLE_KEY
 
-#### Render deploy steps
+#### Railway deploy steps
 1. Push the repo to GitHub.
-2. Create a new Web Service in Render.
-3. Connect the repository.
-4. Use the start command:
+2. Go to [railway.app](https://railway.app) and create a new project.
+3. Select **Deploy from GitHub repo** and connect the repository.
+4. Railway will auto-detect the Nixpacks builder and use the start command from `railway.json`:
    ```bash
    gunicorn app:app
    ```
-5. Add the environment variables above and deploy.
+5. Open the **Variables** tab and add the environment variables above.
+6. Deploy — Railway will build and serve the app automatically.
+
+> The `railway.json` file sets the builder to Nixpacks, the start command to `gunicorn app:app`, and configures automatic restarts on failure.
 
 ### Vercel deployment
-This project also includes a Vercel-compatible entry point in [api/index.py](api/index.py) and config in [vercel.json](vercel.json).
+This project also includes a Vercel-compatible entry point in [api/index.py](api/index.py).
 
 #### Required environment variables in Vercel
 - SECRET_KEY
