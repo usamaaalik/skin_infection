@@ -4,7 +4,9 @@ Main Flask application
 """
 from __future__ import annotations
 
+import base64
 import os
+import tempfile
 import uuid
 import json
 from datetime import datetime, timedelta
@@ -18,7 +20,23 @@ from flask import (
 )
 from werkzeug.utils import secure_filename
 
-from database import db, supabase, User, ScanHistory, Feedback
+import base64
+
+from database import (
+    db,
+    supabase,
+    User,
+    ScanHistory,
+    Feedback,
+    authenticate_user,
+    create_user,
+    get_user_by_id,
+    get_user_by_username,
+    init_db,
+    insert_scan_record,
+    list_users,
+    update_user,
+)
 from predictor import SkinPredictor
 from report import generate_history_pdf, generate_single_pdf
 
@@ -42,6 +60,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB
 
 db.init_app(app)
+init_db()
 
 # Lazy-load predictor so app starts even if model isn't trained yet
 predictor: Optional[SkinPredictor] = None
@@ -58,6 +77,19 @@ def get_predictor() -> SkinPredictor:
 
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def _build_image_data_url(image_bytes, filename: Optional[str] = None) -> Optional[str]:
+    if not image_bytes:
+        return None
+    if isinstance(image_bytes, (bytes, bytearray)):
+        encoded = base64.b64encode(bytes(image_bytes)).decode("utf-8")
+    else:
+        encoded = str(image_bytes)
+    ext = (os.path.splitext(filename or "")[1].lstrip(".") or "png").lower()
+    if ext == "jpg":
+        ext = "jpeg"
+    return f"data:image/{ext};base64,{encoded}"
 
 
 def login_required(f):
@@ -81,24 +113,6 @@ def admin_required(f):
             return redirect(url_for("dashboard"))
         return f(*args, **kwargs)
     return decorated
-
-
-def _resolve_email_from_identifier(identifier: str) -> Optional[str]:
-    identifier = (identifier or "").strip()
-    if not identifier:
-        return None
-    if "@" in identifier:
-        return identifier.lower()
-    if not supabase:
-        return None
-    try:
-        response = supabase.table("profiles").select("email").eq("username", identifier).maybe_single().execute()
-        data = getattr(response, "data", None) or (response.get("data") if isinstance(response, dict) else None)
-        if isinstance(data, dict) and data.get("email"):
-            return str(data["email"]).strip().lower()
-    except Exception:
-        return None
-    return None
 
 
 def _get_user_payload(payload) -> tuple[Optional[object], Optional[object]]:
@@ -159,7 +173,7 @@ def _build_user(profile: Optional[dict], email: Optional[str] = None) -> Optiona
         id=profile.get("id"),
         first_name=profile.get("first_name", ""),
         last_name=profile.get("last_name", ""),
-        email=email or session.get("email") or "",
+        email=email or "",
         username=profile.get("username", ""),
         is_premium=bool(profile.get("is_premium", False)),
         is_admin=bool(profile.get("is_admin", False)),
@@ -192,6 +206,14 @@ def _build_scan(scan_data: Optional[dict]) -> Optional[AppUser]:
             scan.scores_dict = json.loads(scan.all_scores) if isinstance(scan.all_scores, str) else scan.all_scores
     except Exception:
         scan.scores_dict = {}
+
+    image_bytes = getattr(scan, "image_bytes", None)
+    if image_bytes and isinstance(image_bytes, str) and image_bytes.startswith("data:image"):
+        scan.image_url = image_bytes
+    elif image_bytes:
+        scan.image_url = _build_image_data_url(image_bytes, getattr(scan, "image_filename", None))
+    else:
+        scan.image_url = None
     return scan
 
 
@@ -211,40 +233,18 @@ def _build_feedback(feedback_data: Optional[dict]) -> Optional[SimpleNamespace]:
 
 def _get_current_user() -> Optional[AppUser]:
     user_id = session.get("user_id")
-    if not user_id or not supabase:
+    if not user_id:
         return None
 
-    try:
-        response = supabase.table("profiles").select("*").eq("id", user_id).maybe_single().execute()
-        profile = _safe_supabase_single(response)
-        if isinstance(profile, dict):
-            return _build_user(profile, session.get("email") or profile.get("email"))
-    except Exception:
-        profile = None
-
-    try:
-        user_response = supabase.auth.admin.get_user_by_id(user_id)
-        user_data = getattr(user_response, "user", None) or (user_response.get("user") if isinstance(user_response, dict) else None)
-        if isinstance(user_data, dict):
-            meta = user_data.get("user_metadata") or {}
-            return AppUser(
-                id=user_data.get("id") or user_id,
-                first_name=meta.get("first_name", ""),
-                last_name=meta.get("last_name", ""),
-                email=user_data.get("email") or session.get("email") or "",
-                username=meta.get("username", ""),
-                is_premium=bool(meta.get("is_premium", False)),
-                is_admin=bool(meta.get("is_admin", False)),
-                created_at=None,
-            )
-    except Exception:
-        pass
+    profile = get_user_by_id(user_id)
+    if isinstance(profile, dict):
+        return _build_user(profile)
 
     return AppUser(
         id=user_id,
         first_name=session.get("user_name") or "",
         last_name="",
-        email=session.get("email") or "",
+        email="",
         username="",
         is_premium=bool(session.get("is_premium", False)),
         is_admin=bool(session.get("is_admin", False)),
@@ -272,72 +272,30 @@ def _get_user_scan_count(user_id: Optional[str]) -> int:
 
 
 def _upsert_profile_for_user(user_obj: object, email: Optional[str] = None) -> None:
-    if not supabase:
+    if isinstance(user_obj, dict):
+        user_id = user_obj.get("id")
+        first_name = (user_obj.get("user_metadata") or {}).get("first_name", "") if isinstance(user_obj.get("user_metadata"), dict) else ""
+        last_name = (user_obj.get("user_metadata") or {}).get("last_name", "") if isinstance(user_obj.get("user_metadata"), dict) else ""
+        username = (user_obj.get("user_metadata") or {}).get("username", "") if isinstance(user_obj.get("user_metadata"), dict) else ""
+    else:
+        user_id = getattr(user_obj, "id", None)
+        user_meta = getattr(user_obj, "user_metadata", None) or {}
+        first_name = user_meta.get("first_name", "") if isinstance(user_meta, dict) else ""
+        last_name = user_meta.get("last_name", "") if isinstance(user_meta, dict) else ""
+        username = user_meta.get("username", "") if isinstance(user_meta, dict) else ""
+
+    if not user_id:
         return
-    try:
-        user_meta = {}
-        if isinstance(user_obj, dict):
-            user_meta = user_obj.get("user_metadata") or {}
-            user_id = user_obj.get("id")
-        else:
-            user_meta = getattr(user_obj, "user_metadata", None) or {}
-            user_id = getattr(user_obj, "id", None)
 
-        if not user_id:
-            return
-
-        payload = {
-            "id": user_id,
-            "first_name": (user_meta.get("first_name") if isinstance(user_meta, dict) else None) or "",
-            "last_name": (user_meta.get("last_name") if isinstance(user_meta, dict) else None) or "",
-            "username": (user_meta.get("username") if isinstance(user_meta, dict) else None) or "",
-            "is_premium": False,
-            "is_admin": False,
-        }
-        if email:
-            payload["email"] = email
-        supabase.table("profiles").upsert(payload, on_conflict="id").execute()
-    except Exception:
-        pass
-
-
-def _resolve_email_from_identifier(identifier: str) -> Optional[str]:
-    identifier = (identifier or "").strip()
-    if not identifier:
-        return None
-    if "@" in identifier:
-        return identifier.lower()
-    if not supabase:
-        return None
-
-    try:
-        response = supabase.table("profiles").select("email").eq("username", identifier).maybe_single().execute()
-        data = getattr(response, "data", None) or (response.get("data") if isinstance(response, dict) else None)
-        if isinstance(data, dict) and data.get("email"):
-            return str(data["email"]).strip().lower()
-    except Exception:
-        pass
-
-    try:
-        user_response = supabase.auth.admin.list_users()
-        users = getattr(user_response, "users", None) or getattr(user_response, "data", None) or []
-        if isinstance(users, dict):
-            users = users.get("users") or []
-        for item in users or []:
-            meta = getattr(item, "user_metadata", None) or {}
-            if isinstance(meta, dict) and str(meta.get("username", "")).lower() == identifier.lower():
-                email = getattr(item, "email", None)
-                if email:
-                    return str(email).strip().lower()
-            if isinstance(item, dict):
-                meta = item.get("user_metadata") or {}
-                if str(meta.get("username", "")).lower() == identifier.lower():
-                    email = item.get("email")
-                    if email:
-                        return str(email).strip().lower()
-    except Exception:
-        pass
-    return None
+    existing = get_user_by_id(user_id)
+    if existing:
+        update_user(user_id, {
+            "first_name": first_name or existing.get("first_name", ""),
+            "last_name": last_name or existing.get("last_name", ""),
+            "username": username or existing.get("username", ""),
+        })
+    elif username:
+        create_user(first_name or "", last_name or "", username, "temporary-password")
 
 
 # ─── Auth Routes ─────────────────────────────────────────────────────────────
@@ -369,39 +327,23 @@ def register():
             flash("Username must be at least 3 characters.", "warning")
             return render_template("register.html")
 
-        if not supabase:
-            flash("Supabase is not configured. Please set SUPABASE_URL and SUPABASE_KEY.", "danger")
-            return render_template("register.html")
-
         try:
-            response = supabase.auth.sign_up(
-                {
-                    "email": f"{username}@local.dermoscan",
-                    "password": password,
-                    "options": {
-                        "data": {
-                            "first_name": first,
-                            "last_name": last,
-                            "username": username,
-                        },
-                    },
-                }
-            )
-        except Exception as exc:
-            message = str(exc).lower()
-            if "rate limit" in message or "too many requests" in message or "email" in message and "rate" in message:
-                flash("Too many signup emails were sent recently. Please wait a few minutes and try again.", "warning")
-            else:
-                flash(f"Registration failed: {exc}", "danger")
+            created_user = create_user(first, last, username, password)
+        except RuntimeError as exc:
+            flash(str(exc), "warning")
             return render_template("register.html")
 
-        user_payload = _get_user_payload(response)
-        if user_payload[0] is not None:
-            _upsert_profile_for_user(user_payload[0], f"{username}@local.dermoscan")
+        if created_user is None:
+            flash("That username is already taken. Please choose another one.", "warning")
+            return render_template("register.html")
 
-        session.pop("pending_verification_email", None)
+        session.clear()
+        session["user_id"] = created_user["id"]
+        session["user_name"] = created_user["first_name"] or username
+        session["is_admin"] = bool(created_user.get("is_admin", False))
+        session["is_premium"] = bool(created_user.get("is_premium", False))
         flash("Your account was created. You can now sign in with your username and password.", "success")
-        return redirect(url_for("login"))
+        return redirect(url_for("dashboard"))
     return render_template("register.html")
 
 
@@ -417,48 +359,17 @@ def login():
             flash("Please enter your credentials.", "warning")
             return render_template("login.html")
 
-        email = _resolve_email_from_identifier(username)
-        if not email:
-            email = f"{username}@local.dermoscan"
-
-        if not supabase:
-            flash("Supabase is not configured. Please set SUPABASE_URL and SUPABASE_KEY.", "danger")
-            return render_template("login.html")
-
-        try:
-            response = supabase.auth.sign_in_with_password({"email": email, "password": password})
-        except Exception as exc:
-            message = str(exc).lower()
-            if "rate limit" in message or "too many requests" in message:
-                session.clear()
-                flash("We are receiving too many login attempts right now. Please wait a moment and try again.", "warning")
-                return render_template("login.html")
+        user = authenticate_user(username, password)
+        if not user:
             session.clear()
             flash("Invalid username or password.", "danger")
             return render_template("login.html")
 
-        user, auth_session = _get_user_payload(response)
-        if not auth_session:
-            session.clear()
-            flash("Unable to sign in right now. Please try again.", "danger")
-            return render_template("login.html")
-
-        user_meta = {}
-        if isinstance(user, dict):
-            user_meta = user.get("user_metadata") or {}
-        else:
-            user_meta = getattr(user, "user_metadata", None) or {}
-
         session.clear()
-        session.pop("pending_verification_email", None)
-        session["user_id"] = getattr(user, "id", None) or (user.get("id") if isinstance(user, dict) else None)
-        session["email"] = email
-        session["access_token"] = getattr(auth_session, "access_token", None) or (auth_session.get("access_token") if isinstance(auth_session, dict) else None)
-        session["refresh_token"] = getattr(auth_session, "refresh_token", None) or (auth_session.get("refresh_token") if isinstance(auth_session, dict) else None)
-        session["user_name"] = (user_meta.get("first_name") if isinstance(user_meta, dict) else None) or username
-        session["is_admin"] = bool((user_meta.get("is_admin") if isinstance(user_meta, dict) else None) or False)
-        session["is_premium"] = bool((user_meta.get("is_premium") if isinstance(user_meta, dict) else None) or False)
-        _upsert_profile_for_user(user, email)
+        session["user_id"] = user["id"]
+        session["user_name"] = user.get("first_name") or username
+        session["is_admin"] = bool(user.get("is_admin", False))
+        session["is_premium"] = bool(user.get("is_premium", False))
         return redirect(url_for("dashboard"))
     return render_template("login.html")
 
@@ -529,30 +440,38 @@ def analysis():
             flash("Only JPG and PNG files are accepted.", "danger")
             return render_template("analysis.html", user=user, scan_count=scan_count)
 
-        # Save file
         ext = secure_filename(file.filename).rsplit(".", 1)[1].lower()
         filename = f"{uuid.uuid4().hex}.{ext}"
-        filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-        file.save(filepath)
+        image_bytes = file.read()
+        image_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
-        # Run prediction
+        temp_handle, temp_path = tempfile.mkstemp(suffix=f".{ext}")
+        os.close(temp_handle)
+        with open(temp_path, "wb") as handle:
+            handle.write(image_bytes)
+
         try:
             pred = get_predictor()
-            result = pred.predict(filepath)
+            result = pred.predict(temp_path)
         except Exception as e:
             flash(f"Prediction error: {e}", "danger")
             return render_template("analysis.html", user=user, scan_count=scan_count)
+        finally:
+            try:
+                os.remove(temp_path)
+            except OSError:
+                pass
 
         # Save to history
         try:
-            insert_response = supabase.table("scan_history").insert({
+            inserted = insert_scan_record({
                 "user_id": user.id,
                 "image_filename": filename,
+                "image_bytes": image_b64,
                 "predicted_class": result["predicted_class"],
                 "confidence": result["confidence"],
                 "all_scores": result["all_scores"],
-            }).execute()
-            inserted = _safe_supabase_single(insert_response)
+            })
             history_id = inserted.get("id") if inserted else None
         except Exception as exc:
             flash(f"Unable to save your scan history right now: {exc}", "warning")
@@ -562,7 +481,7 @@ def analysis():
             "result.html",
             user=user,
             result=result,
-            image_url=url_for("static", filename=f"uploads/{filename}"),
+            image_url=_build_image_data_url(image_b64, filename),
             history_id=history_id,
         )
 
@@ -647,7 +566,12 @@ def scan_detail(scan_id):
         flash("The requested scan could not be found.", "warning")
         return redirect(url_for("history"))
 
-    image_url = url_for("static", filename=f"uploads/{scan.image_filename}")
+    image_url = None
+    image_bytes = getattr(scan, "image_bytes", None)
+    if image_bytes:
+        image_url = _build_image_data_url(image_bytes, getattr(scan, "image_filename", None))
+    elif getattr(scan, "image_filename", None):
+        image_url = url_for("static", filename=f"uploads/{scan.image_filename}")
     return render_template("scan_detail.html", user=user, scan=scan, image_url=image_url)
 
 
@@ -672,14 +596,15 @@ def profile():
         if last:
             updates["last_name"] = last
         if new_pass:
-            flash("Password changes are disabled in this version. Please contact support.", "info")
-            return render_template("profile.html", user=user)
+            if len(new_pass) < 6:
+                flash("Password must be at least 6 characters.", "warning")
+                return render_template("profile.html", user=user)
+            update_user(user.id, {"password": new_pass})
 
         if updates:
-            try:
-                supabase.table("profiles").update(updates).eq("id", user.id).execute()
-            except Exception as exc:
-                flash(f"Unable to update your profile right now: {exc}", "warning")
+            updated = update_user(user.id, updates)
+            if not updated:
+                flash("Unable to update your profile right now.", "warning")
                 return render_template("profile.html", user=user)
 
         flash("Profile updated successfully.", "success")
@@ -734,10 +659,9 @@ def upgrade_confirm():
         session.clear()
         flash("Your session could not be restored. Please log in again.", "warning")
         return redirect(url_for("login"))
-    try:
-        supabase.table("profiles").update({"is_premium": True}).eq("id", user.id).execute()
-    except Exception as exc:
-        flash(f"Unable to activate Premium right now: {exc}", "warning")
+    updated = update_user(user.id, {"is_premium": True})
+    if not updated:
+        flash("Unable to activate Premium right now.", "warning")
         return redirect(url_for("dashboard"))
     flash("Congratulations! You are now a Premium member.", "success")
     return redirect(url_for("dashboard"))
@@ -866,11 +790,11 @@ def report_scan(scan_id):
 @app.route("/admin")
 @admin_required
 def admin_panel():
-    try:
-        users_response = supabase.table("profiles").select("*").order("created_at", desc=True).execute()
-        users = [_build_user(item, session.get("email")) for item in _safe_supabase_data(users_response) if _build_user(item, session.get("email"))]
-    except Exception:
-        users = []
+    users = []
+    for item in list_users():
+        built = _build_user(item)
+        if built:
+            users.append(built)
 
     try:
         scans_response = supabase.table("scan_history").select("*").order("created_at", desc=True).limit(50).execute()
@@ -885,11 +809,7 @@ def admin_panel():
         feedbacks = []
 
     total_scans = len(scans)
-    try:
-        users_count_response = supabase.table("profiles").select("id", count="exact").execute()
-        total_users = getattr(users_count_response, "count", None) or len(users)
-    except Exception:
-        total_users = len(users)
+    total_users = len(users)
     return render_template(
         "admin.html",
         users=users,
@@ -922,30 +842,35 @@ def api_predict():
 
     ext = secure_filename(file.filename).rsplit(".", 1)[1].lower()
     filename = f"{uuid.uuid4().hex}.{ext}"
-    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-    file.save(filepath)
+    image_bytes = file.read()
+    image_b64 = base64.b64encode(image_bytes).decode("utf-8")
+
+    temp_handle, temp_path = tempfile.mkstemp(suffix=f".{ext}")
+    os.close(temp_handle)
+    with open(temp_path, "wb") as handle:
+        handle.write(image_bytes)
 
     try:
         pred = get_predictor()
-        result = pred.predict(filepath)
+        result = pred.predict(temp_path)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
     try:
-        insert_response = supabase.table("scan_history").insert({
+        inserted = insert_scan_record({
             "user_id": user.id,
             "image_filename": filename,
+            "image_bytes": image_b64,
             "predicted_class": result["predicted_class"],
             "confidence": result["confidence"],
             "all_scores": result["all_scores"],
-        }).execute()
-        inserted = _safe_supabase_single(insert_response)
+        })
         history_id = inserted.get("id") if inserted else None
     except Exception:
         history_id = None
 
     result["history_id"] = history_id
-    result["image_url"] = url_for("static", filename=f"uploads/{filename}")
+    result["image_url"] = _build_image_data_url(image_b64, filename)
     return jsonify(result)
 
 

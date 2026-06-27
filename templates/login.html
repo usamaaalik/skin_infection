@@ -41,15 +41,10 @@
         <div class="auth-right">
             <h2>Patient Login</h2>
             <p class="auth-subtitle">Please enter your details to access your dashboard.</p>
-            {% if session.get('pending_verification_email') %}
-            <div class="alert alert-info" style="margin-bottom:16px;">
-                <i class="fas fa-envelope"></i> A confirmation email was sent to {{ session.get('pending_verification_email') }}. Please verify it before logging in.
-            </div>
-            {% endif %}
             <form method="POST" action="{{ url_for('login') }}">
                 <div class="form-group">
-                    <label>Email or Username</label>
-                    <input class="form-control" type="text" name="identifier" placeholder="Email or Username" required>
+                    <label>Username</label>
+                    <input class="form-control" type="text" name="identifier" placeholder="Enter your username" required>
                 </div>
                 <div class="form-group">
                     <label>Password</label>

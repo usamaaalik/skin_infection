@@ -2,7 +2,8 @@
 {% block title %}My Scan History – DermoScan{% endblock %}
 
 {% block extra_css %}
-.scan-thumb  { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; }
+.scan-thumb  { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; display: block; border: 1px solid #e5e7eb; background: #f8fafc; }
+.table-cell-thumb { display: inline-flex; align-items: center; justify-content: center; min-width: 56px; }
 .empty-state { text-align: center; padding: 60px 20px; }
 .empty-state i { font-size: 56px; color: #ddd; margin-bottom: 16px; }
 
@@ -411,9 +412,12 @@
                               title="Click to copy ID"
                               onclick="copyId(this)">#{{ scan.id }}</span>
                     </td>
-                        <img class="scan-thumb"
-                             src="{{ url_for('static', filename='uploads/' ~ scan.image_filename) }}"
-                             alt="scan" onerror="this.src='https://via.placeholder.com/50x50?text=IMG'">
+                    <td>
+                        <div class="table-cell-thumb">
+                            <img class="scan-thumb"
+                                 src="{% if scan.image_url %}{{ scan.image_url }}{% elif scan.image_filename %}{{ url_for('static', filename='uploads/' ~ scan.image_filename) }}{% endif %}"
+                                 alt="scan" onerror="this.src='https://via.placeholder.com/50x50?text=IMG'">
+                        </div>
                     </td>
                     <td>
                         <span class="badge badge-{{ scan.badge_color }}">

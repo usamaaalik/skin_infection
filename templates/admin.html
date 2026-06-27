@@ -84,7 +84,7 @@
                 <tr>
                     <th>#</th>
                     <th>Name</th>
-                    <th>Email</th>
+                    <th>Username</th>
                     <th>Plan</th>
                     <th>Role</th>
                     <th>Joined</th>
@@ -95,7 +95,7 @@
                 <tr>
                     <td style="color:var(--text-muted);font-size:12px;">{{ u.id }}</td>
                     <td style="font-weight:600;">{{ u.full_name }}</td>
-                    <td style="font-size:13px;color:var(--text-muted);">{{ u.email }}</td>
+                    <td style="font-size:13px;color:var(--text-muted);">{{ u.username }}</td>
                     <td>
                         {% if u.is_premium %}
                             <span class="premium-badge">★ Premium</span>
@@ -139,7 +139,7 @@
                     <td style="color:var(--text-muted);font-size:12px;">{{ scan.id }}</td>
                     <td>
                         <img class="scan-thumb"
-                             src="{{ url_for('static', filename='uploads/' ~ scan.image_filename) }}"
+                             src="{% if scan.image_bytes %}{{ scan.image_bytes }}{% elif scan.image_filename %}{{ url_for('static', filename='uploads/' ~ scan.image_filename) }}{% endif %}"
                              alt="scan" onerror="this.src='https://via.placeholder.com/44?text=IMG'">
                     </td>
                     <td style="font-size:13px;">{{ scan.user.full_name }}</td>

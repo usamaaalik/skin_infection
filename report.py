@@ -3,6 +3,7 @@ DermoScan – PDF Report Generator
 Uses ReportLab to produce a patient scan history report.
 """
 
+import base64
 import io
 import os
 from datetime import datetime
@@ -152,15 +153,25 @@ def _scans_table(scans, upload_dir, styles):
         cls = scan.predicted_class.lower()
 
         # Thumbnail
-        img_path = os.path.join(upload_dir, scan.image_filename)
-        if os.path.exists(img_path):
+        image_bytes = getattr(scan, "image_bytes", None)
+        if image_bytes:
             try:
-                thumb = RLImage(img_path, width=16*mm, height=16*mm)
+                image_data = base64.b64decode(image_bytes)
+                image_stream = io.BytesIO(image_data)
+                thumb = RLImage(image_stream, width=16*mm, height=16*mm)
                 thumb.hAlign = "CENTER"
             except Exception:
                 thumb = Paragraph("–", styles["muted"])
         else:
-            thumb = Paragraph("–", styles["muted"])
+            img_path = os.path.join(upload_dir, scan.image_filename)
+            if os.path.exists(img_path):
+                try:
+                    thumb = RLImage(img_path, width=16*mm, height=16*mm)
+                    thumb.hAlign = "CENTER"
+                except Exception:
+                    thumb = Paragraph("–", styles["muted"])
+            else:
+                thumb = Paragraph("–", styles["muted"])
 
         # Badge colour cell
         badge_color = BADGE_COLOURS.get(cls, PURPLE)
@@ -303,13 +314,22 @@ def generate_single_pdf(user, scan, upload_dir: str) -> bytes:
     story.append(HRFlowable(width="100%", thickness=1, color=PURPLE, spaceAfter=6))
 
     # Image + result side by side
-    img_path = os.path.join(upload_dir, scan.image_filename)
+    image_bytes = getattr(scan, "image_bytes", None)
     img_cell = "–"
-    if os.path.exists(img_path):
+    if image_bytes:
         try:
-            img_cell = RLImage(img_path, width=55*mm, height=55*mm)
+            image_data = base64.b64decode(image_bytes)
+            image_stream = io.BytesIO(image_data)
+            img_cell = RLImage(image_stream, width=55*mm, height=55*mm)
         except Exception:
             pass
+    else:
+        img_path = os.path.join(upload_dir, scan.image_filename)
+        if os.path.exists(img_path):
+            try:
+                img_cell = RLImage(img_path, width=55*mm, height=55*mm)
+            except Exception:
+                pass
 
     cls   = scan.predicted_class.lower()
     badge = BADGE_COLOURS.get(cls, PURPLE)

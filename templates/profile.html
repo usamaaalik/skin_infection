@@ -28,7 +28,7 @@
     <div class="card no-hover" style="text-align:center;padding:36px;margin-bottom:24px;">
         <div class="avatar-large" style="margin:0 auto 16px;">{{ user.initials }}</div>
         <div class="profile-name">{{ user.full_name }}</div>
-        <div class="profile-email">{{ user.email }}</div>
+        <div class="profile-email">@{{ user.username }}</div>
         <div style="margin-top:12px;">
             {% if user.is_premium %}
                 <span class="premium-badge" style="font-size:13px;padding:6px 14px;">★ Premium Member</span>
@@ -61,8 +61,8 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>Email Address <span style="color:#aaa;font-size:11px;">(cannot be changed)</span></label>
-                <input class="form-control" type="email" value="{{ user.email }}" disabled
+                <label>Username</label>
+                <input class="form-control" type="text" value="{{ user.username }}" disabled
                        style="background:#f0f0f0;cursor:not-allowed;">
             </div>
             <hr style="border:none;border-top:1px solid var(--border);margin:20px 0;">

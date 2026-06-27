@@ -120,9 +120,11 @@
             <a href="{{ url_for('analysis') }}" class="btn btn-teal">
                 <i class="fas fa-redo"></i> New Scan
             </a>
+            {% if history_id %}
             <a href="{{ url_for('scan_detail', scan_id=history_id) }}" class="btn btn-outline">
                 <i class="fas fa-eye"></i> View Details
             </a>
+            {% endif %}
             <a href="{{ url_for('history') }}" class="btn" style="background:#f1f5f9;color:#555;">
                 <i class="fas fa-history"></i> Scan History
             </a>
