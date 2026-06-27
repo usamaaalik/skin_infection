@@ -11,6 +11,14 @@
 .filter-bar  { background: var(--card); border-radius: 16px; padding: 18px 22px;
                box-shadow: 0 4px 16px rgba(0,0,0,.05); margin-bottom: 20px;
                display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+@media (max-width: 600px) {
+    .filter-bar { padding: 14px 16px; gap: 12px; }
+    .filter-bar .filter-group { width: 100%; }
+    .flatpickr-input { width: 100% !important; }
+    .date-input-wrap { width: 100%; }
+    .preset-chips { width: 100%; }
+    .filter-bar > div[style] { width: 100%; }
+}
 .filter-group { display: flex; flex-direction: column; gap: 6px; }
 .filter-label { font-size: 11px; font-weight: 700; color: var(--text-muted);
                 text-transform: uppercase; letter-spacing: .6px;
@@ -126,6 +134,13 @@
     background: #f8fafc; border-radius: 10px;
     border: 1px solid #e8ecf0;
 }
+@media (max-width: 700px) {
+    .search-filters { gap: 8px; padding: 10px 12px; }
+    .sf-divider { display: none; }
+    .conf-slider-wrap { width: 100%; }
+    #confSlider { width: calc(100% - 50px); }
+    #sortSelect { width: 100%; }
+}
 .sf-label { font-size: 11px; font-weight: 700; color: var(--text-muted);
             text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
 .sf-divider { width: 1px; height: 20px; background: #e0e0e0; flex-shrink: 0; }
@@ -209,6 +224,58 @@
 }
 .scan-id-badge:hover { background: var(--purple); color: #fff; }
 .scan-id-badge.copied { background: var(--teal); color: #fff; border-color: var(--teal); }
+
+/* ── Responsive table → card view on mobile ─────────────────── */
+@media (max-width: 768px) {
+    .table-wrap table,
+    .table-wrap thead,
+    .table-wrap tbody,
+    .table-wrap th,
+    .table-wrap td,
+    .table-wrap tr { display: block; width: 100%; }
+
+    .table-wrap thead { display: none; }
+
+    .table-wrap tr.scan-row {
+        background: #fff; border: 1px solid #e8ecf0;
+        border-radius: 14px; margin-bottom: 12px; padding: 14px 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,.04);
+    }
+    .table-wrap tr.scan-row:hover td { background: transparent; }
+
+    .table-wrap td {
+        border: none; padding: 4px 0;
+        display: flex; align-items: center; gap: 10px;
+        font-size: 13px;
+    }
+    .table-wrap td::before {
+        content: attr(data-label);
+        font-size: 10px; font-weight: 700; color: var(--text-muted);
+        text-transform: uppercase; letter-spacing: .5px;
+        min-width: 82px; flex-shrink: 0;
+    }
+    .table-wrap td.row-num { display: none; }
+    .table-wrap td:has(.scan-thumb) { margin-bottom: 4px; }
+    .scan-thumb { width: 44px; height: 44px; }
+
+    /* action buttons side by side */
+    .table-wrap td:last-child { flex-wrap: wrap; gap: 6px; }
+    .table-wrap td:last-child::before { content: ''; min-width: 0; }
+}
+
+/* ── Topbar responsive ───────────────────────────────────────── */
+@media (max-width: 600px) {
+    .topbar { flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 20px; }
+    .user-pill { align-self: flex-end; }
+    .topbar-title h1 { font-size: 20px; }
+}
+
+/* ── Card header flex wrap ───────────────────────────────────── */
+@media (max-width: 560px) {
+    .card .flex-between { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .card .flex-between > div { width: 100%; }
+    .card .flex-between > div .btn { flex: 1; justify-content: center; }
+}
 {% endblock %}
 
 {% block content %}
@@ -407,24 +474,24 @@
                     data-conf="{{ scan.confidence_pct }}"
                     data-date="{{ scan.created_at.strftime('%Y-%m-%d %H:%M:%S') }}">
                     <td class="row-num" style="color:var(--text-muted);font-size:12px;">{{ loop.index }}</td>
-                    <td>
+                    <td data-label="Scan ID">
                         <span class="scan-id-badge" data-id="{{ scan.id }}"
                               title="Click to copy ID"
                               onclick="copyId(this)">#{{ scan.id }}</span>
                     </td>
-                    <td>
+                    <td data-label="Image">
                         <div class="table-cell-thumb">
                             <img class="scan-thumb"
                                  src="{% if scan.image_url %}{{ scan.image_url }}{% elif scan.image_filename %}{{ url_for('static', filename='uploads/' ~ scan.image_filename) }}{% endif %}"
                                  alt="scan" onerror="this.src='https://via.placeholder.com/50x50?text=IMG'">
                         </div>
                     </td>
-                    <td>
+                    <td data-label="Detection">
                         <span class="badge badge-{{ scan.badge_color }}">
                             {{ scan.predicted_class|capitalize }}
                         </span>
                     </td>
-                    <td>
+                    <td data-label="Confidence">
                         <div style="display:flex;align-items:center;gap:10px;">
                             <div class="progress-wrap" style="width:80px;">
                                 <div class="progress-fill progress-purple"
@@ -435,11 +502,11 @@
                             </span>
                         </div>
                     </td>
-                    <td style="font-size:12px;color:var(--text-muted);">
-                        {{ scan.created_at.strftime('%d %b %Y') }}<br>
+                    <td data-label="Date" style="font-size:12px;color:var(--text-muted);">
+                        {{ scan.created_at.strftime('%d %b %Y') }}&nbsp;
                         <span style="font-size:11px;">{{ scan.created_at.strftime('%I:%M %p') }}</span>
                     </td>
-                    <td>
+                    <td data-label="Actions">
                         <div style="display:flex;gap:6px;flex-wrap:wrap;">
                             <a href="{{ url_for('scan_detail', scan_id=scan.id) }}"
                                class="btn btn-sm btn-outline">

@@ -140,9 +140,21 @@
 
         /* ── Responsive ───────────────────────────────────────── */
         @media (max-width: 768px) {
-            .sidebar      { transform: translateX(-100%); }
-            .main-content { margin-left: 0; padding: 20px; }
+            .sidebar      { transform: translateX(-100%); transition: transform .28s ease; }
+            .sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.15); }
+            .main-content { margin-left: 0; padding: 20px 16px; }
+            .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35);
+                               z-index: 99; }
+            .sidebar-overlay.show { display: block; }
+            .hamburger    { display: flex !important; }
         }
+        .hamburger {
+            display: none; align-items: center; justify-content: center;
+            width: 38px; height: 38px; background: var(--card); border-radius: 10px;
+            border: 1px solid var(--border); cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,.07); flex-shrink: 0;
+        }
+        .hamburger i { font-size: 16px; color: var(--purple); }
 
         /* ── Utility ──────────────────────────────────────────── */
         .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
@@ -170,8 +182,11 @@
 <body>
     {% if session.get('user_id') %}
     <div class="layout">
+        <!-- Mobile overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
         <!-- Sidebar -->
-        <nav class="sidebar">
+        <nav class="sidebar" id="sidebar">
             <div class="logo"><i class="fas fa-microscope"></i> Dermo<span>Scan</span></div>
             <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
                 <i class="fas fa-home"></i> Dashboard
@@ -201,6 +216,14 @@
 
         <!-- Main -->
         <main class="main-content">
+            <!-- Mobile hamburger -->
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;" class="mobile-header">
+                <button class="hamburger" id="hamburger" aria-label="Open menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <span style="font-size:16px;font-weight:700;color:#2b2e4a;">Dermo<span style="color:var(--purple);">Scan</span></span>
+            </div>
+
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
             <div class="flash-container">
@@ -240,6 +263,33 @@
                 setTimeout(() => el.remove(), 500);
             });
         }, 4000);
+
+        // Mobile sidebar toggle
+        (function () {
+            const hamburger = document.getElementById('hamburger');
+            const sidebar   = document.getElementById('sidebar');
+            const overlay   = document.getElementById('sidebarOverlay');
+            if (!hamburger) return;
+
+            function openSidebar()  { sidebar.classList.add('open');  overlay.classList.add('show'); }
+            function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('show'); }
+
+            hamburger.addEventListener('click', openSidebar);
+            overlay.addEventListener('click',   closeSidebar);
+            // Close sidebar when a nav link is clicked on mobile
+            sidebar.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', closeSidebar);
+            });
+        })();
+
+        // Hide mobile header on desktop
+        const mobileHeader = document.querySelector('.mobile-header');
+        if (mobileHeader) {
+            const mq = window.matchMedia('(min-width: 769px)');
+            function toggleHeader(e) { mobileHeader.style.display = e.matches ? 'none' : 'flex'; }
+            mq.addEventListener('change', toggleHeader);
+            toggleHeader(mq);
+        }
     </script>
     {% block extra_js %}{% endblock %}
 </body>

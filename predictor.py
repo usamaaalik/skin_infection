@@ -64,14 +64,17 @@ class SkinPredictor:
 
     def _load_model(self):
         if not os.path.exists(MODEL_PATH):
-            print(f"[Predictor] Model not found at {MODEL_PATH}. Run train_model.py first.")
+            print(f"[Predictor] Model not found at {MODEL_PATH}. Using mock predictor.")
             return
         try:
+            os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")  # suppress TF C++ noise
             from tensorflow.keras.models import load_model  # type: ignore
             self.model = load_model(MODEL_PATH)
             print(f"[Predictor] Model loaded from {MODEL_PATH}")
+        except ImportError:
+            print("[Predictor] TensorFlow not installed — using mock predictor.")
         except Exception as e:
-            print(f"[Predictor] Failed to load model: {e}")
+            print(f"[Predictor] Failed to load model: {e} — using mock predictor.")
 
     def _preprocess(self, image_path: str) -> np.ndarray:
         """Read, resize, and normalise an image to model input format."""

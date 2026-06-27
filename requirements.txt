@@ -5,7 +5,8 @@ numpy
 reportlab
 scikit-learn
 matplotlib
-opencv-python
+opencv-python-headless
 supabase==2.11.0
 python-dotenv
 gunicorn
+tensorflow-cpu==2.15.1
