@@ -15,6 +15,8 @@
 .feature-list li:last-child { border: none; }
 .feature-list .check { color: var(--teal); font-size: 16px; }
 .free-col        { background: #f8f9fa; border-radius: 16px; padding: 24px; text-align: center; }
+.stripe-badge    { display:flex; align-items:center; justify-content:center; gap:6px;
+                   font-size:11px; color:#aaa; margin-top:10px; }
 {% endblock %}
 
 {% block content %}
@@ -36,9 +38,11 @@
         You're already a <strong>Premium</strong> member. Enjoy unlimited scans!
     </div>
     <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-primary">← Back to Dashboard</a>
+
     {% else %}
     <div class="grid-2">
-        <!-- Free plan -->
+
+        <!-- Free Plan -->
         <div class="free-col">
             <div style="font-size:20px;font-weight:700;margin-bottom:8px;">Free Plan</div>
             <div style="font-size:40px;font-weight:800;margin:12px 0;">$0</div>
@@ -52,7 +56,7 @@
             <div class="badge badge-secondary">Current Plan</div>
         </div>
 
-        <!-- Premium plan -->
+        <!-- Premium Plan -->
         <div class="card pricing-card no-hover" style="padding:0;border: 2px solid var(--purple);">
             <div class="pricing-header">
                 <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;opacity:.8;">
@@ -70,13 +74,22 @@
                     <li><i class="fas fa-check check"></i> Priority support</li>
                     <li><i class="fas fa-check check"></i> Early access to new features</li>
                 </ul>
-                <form method="POST" action="{{ url_for('misc.upgrade_confirm') }}">
+
+                <!-- Stripe Checkout Button — points to upgrade_checkout route -->
+                <form method="POST" action="{{ url_for('misc.upgrade_checkout') }}">
                     <button type="submit" class="btn btn-primary btn-full" style="font-size:15px;padding:15px;">
-                        <i class="fas fa-crown"></i> Upgrade Now
+                        <i class="fas fa-crown"></i> Upgrade Now – $9.99/mo
                     </button>
                 </form>
+
+                <!-- Stripe Security Badge -->
+                <div class="stripe-badge">
+                    <i class="fas fa-lock"></i>
+                    Secured by <strong style="color:#635bff;">Stripe</strong> &nbsp;·&nbsp; Test mode active
+                </div>
+
                 <p class="text-muted mt-2" style="font-size:11px;text-align:center;">
-                    Demo mode – no payment required
+                    Use test card: <strong>4242 4242 4242 4242</strong> &nbsp;·&nbsp; Any future date &nbsp;·&nbsp; Any CVC
                 </p>
             </div>
         </div>

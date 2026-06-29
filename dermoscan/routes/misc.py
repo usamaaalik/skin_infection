@@ -1,5 +1,5 @@
 """
-DermoScan – Miscellaneous routes: feedback, upgrade, JSON API.
+DermoScan – Miscellaneous routes: feedback, upgrade, Stripe payment, JSON API.
 """
 from __future__ import annotations
 
@@ -8,19 +8,34 @@ import os
 import tempfile
 import uuid
 
+import stripe
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.utils import secure_filename
 
 from database import insert_scan_record, supabase, update_user
-from dermoscan.config import MAX_FREE_SCANS
+from dermoscan.config import (
+    MAX_FREE_SCANS,
+    SITE_URL,
+    STRIPE_PRICE_ID,
+    STRIPE_PUBLISHABLE_KEY,
+    STRIPE_SECRET_KEY,
+    STRIPE_WEBHOOK_SECRET,
+)
 from dermoscan.decorators import login_required
 from dermoscan.services.predictor_service import get_predictor
 from dermoscan.services.scan_service import get_user_scan_count
 from dermoscan.services.user_service import get_current_user
 from dermoscan.utils import allowed_file, build_image_data_url
 
+# Set Stripe secret key once at startup
+stripe.api_key = STRIPE_SECRET_KEY
+
 bp = Blueprint("misc", __name__)
 
+
+# ---------------------------------------------------------------------------
+# Feedback
+# ---------------------------------------------------------------------------
 
 @bp.route("/feedback", methods=["GET", "POST"])
 @login_required
@@ -48,11 +63,115 @@ def feedback():
     return render_template("feedback.html", user=user)
 
 
+# ---------------------------------------------------------------------------
+# Upgrade Page
+# ---------------------------------------------------------------------------
+
 @bp.route("/upgrade")
 @login_required
 def upgrade():
-    return render_template("upgrade.html", user=get_current_user())
+    # Pass publishable key to frontend so Stripe.js can use it
+    return render_template(
+        "upgrade.html",
+        user=get_current_user(),
+        stripe_publishable_key=STRIPE_PUBLISHABLE_KEY,
+    )
 
+
+# ---------------------------------------------------------------------------
+# Stripe Checkout — Create Session
+# ---------------------------------------------------------------------------
+
+@bp.route("/upgrade/checkout", methods=["POST"])
+@login_required
+def upgrade_checkout():
+    """
+    Creates a Stripe Checkout Session and redirects user to Stripe payment page.
+    In test mode, no real money is charged.
+    """
+    user = get_current_user()
+    if not user:
+        session.clear()
+        flash("Your session could not be restored. Please log in again.", "warning")
+        return redirect(url_for("auth.login"))
+
+    # Already premium — no need to charge
+    if user.is_premium:
+        flash("You are already a Premium member!", "info")
+        return redirect(url_for("dashboard.dashboard"))
+
+    try:
+        # Create Stripe Checkout Session
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[{
+                "price": STRIPE_PRICE_ID,  # Price ID from Stripe Dashboard
+                "quantity": 1,
+            }],
+            mode="subscription",  # Monthly recurring
+            success_url=SITE_URL + url_for("misc.upgrade_success") + "?session_id={CHECKOUT_SESSION_ID}",
+            cancel_url=SITE_URL + url_for("misc.upgrade_cancel"),
+            metadata={"user_id": str(user.id)},  # Store user ID for later use
+        )
+        return redirect(checkout_session.url, code=303)
+
+    except stripe.error.StripeError as exc:
+        flash(f"Payment error: {exc.user_message}", "danger")
+        return redirect(url_for("misc.upgrade"))
+
+    except Exception as exc:
+        flash(f"Something went wrong: {exc}", "danger")
+        return redirect(url_for("misc.upgrade"))
+
+
+# ---------------------------------------------------------------------------
+# Stripe Success — After Payment
+# ---------------------------------------------------------------------------
+
+@bp.route("/upgrade/success")
+@login_required
+def upgrade_success():
+    user = get_current_user()
+    if not user:
+        session.clear()
+        return redirect(url_for("auth.login"))
+
+    session_id = request.args.get("session_id")
+
+    if session_id:
+        try:
+            # Verify payment with Stripe
+            checkout_session = stripe.checkout.Session.retrieve(session_id)
+
+            # For subscriptions use status == "complete" not payment_status == "paid"
+            if checkout_session.status == "complete":
+                update_user(user.id, {"is_premium": True})
+                flash("🎉 Congratulations! You are now a Premium member. Enjoy unlimited scans!", "success")
+                return redirect(url_for("dashboard.dashboard"))
+
+        except stripe.error.StripeError as exc:
+            flash(f"Stripe error: {exc.user_message}", "warning")
+            return redirect(url_for("misc.upgrade"))
+
+    flash("Payment could not be verified. Please contact support.", "warning")
+    return redirect(url_for("misc.upgrade"))
+
+
+# ---------------------------------------------------------------------------
+# Stripe Cancel — User Cancelled Payment
+# ---------------------------------------------------------------------------
+
+@bp.route("/upgrade/cancel")
+@login_required
+def upgrade_cancel():
+    """Stripe redirects here if user clicks Back/Cancel on payment page."""
+    flash("Payment cancelled. You can upgrade anytime.", "info")
+    return redirect(url_for("misc.upgrade"))
+
+
+# ---------------------------------------------------------------------------
+# Old confirm route kept for backward compatibility (demo mode fallback)
+# ---------------------------------------------------------------------------
 
 @bp.route("/upgrade/confirm", methods=["POST"])
 @login_required
@@ -68,6 +187,10 @@ def upgrade_confirm():
     flash("Congratulations! You are now a Premium member.", "success")
     return redirect(url_for("dashboard.dashboard"))
 
+
+# ---------------------------------------------------------------------------
+# API Predict
+# ---------------------------------------------------------------------------
 
 @bp.route("/api/predict", methods=["POST"])
 @login_required
