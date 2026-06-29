@@ -7,3 +7,6 @@ ui/
 __pycache__/
 *.pyc
 .vscode/
+dataset/
+DermoScan_Documentation.html
+VIVA_AND_DOCUMENTATION.md

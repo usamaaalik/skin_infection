@@ -3,10 +3,14 @@
 
 {% block extra_css %}
 .result-wrapper { max-width: 900px; margin: 0 auto; }
-.result-top     { display: flex; gap: 32px; align-items: flex-start; }
+.result-top     { display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; }
 .uploaded-img   { width: 280px; flex-shrink: 0; border-radius: 16px; overflow: hidden;
                   box-shadow: 0 12px 32px rgba(0,0,0,.12); }
 .uploaded-img img{ width: 100%; display: block; }
+@media (max-width: 600px) {
+    .uploaded-img { width: 100%; }
+    .result-disease { font-size: 26px; }
+}
 
 .result-info    { flex: 1; }
 .result-tag     { font-size: 11px; font-weight: 700; color: var(--text-muted);
@@ -49,8 +53,8 @@
     {% if result.get('mock') %}
     <div class="alert alert-warning mb-2">
         <i class="fas fa-exclamation-triangle"></i>
-        <strong>Demo mode:</strong> Model not trained yet. Showing a simulated result.
-        Run <code>python3.11 train_model.py</code> to train the real model.
+        <strong>Demo mode:</strong> The AI model is not loaded — showing a simulated result for UI demonstration.
+        Real predictions require TensorFlow and the trained <code>skin_model.h5</code> file.
     </div>
     {% endif %}
 
@@ -65,6 +69,15 @@
             <div class="result-info">
                 <div class="result-tag">AI Detection Result</div>
                 <div class="result-disease">{{ result.predicted_class|capitalize }}</div>
+
+                {% if result.confidence_pct < 65 and not result.get('mock') %}
+                <div style="background:#fff3cd;border-left:3px solid #ffc107;border-radius:6px;
+                            padding:8px 12px;margin-bottom:14px;font-size:12px;color:#856404;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Low confidence result.</strong> The model is not highly certain about this image.
+                    Ensure the photo is a clear, close-up of the skin condition.
+                </div>
+                {% endif %}
 
                 <div class="conf-row">
                     <span style="font-size:14px;color:#555;">Confidence Score</span>

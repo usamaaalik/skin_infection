@@ -103,6 +103,10 @@ def api_predict():
         except OSError:
             pass
 
+    # Reject non-skin images
+    if result.get("rejected"):
+        return jsonify({"error": result.get("rejection_reason", "Not a valid skin image.")}), 422
+
     try:
         inserted = insert_scan_record({
             "user_id": user.id, "image_filename": filename, "image_bytes": img_b64,

@@ -69,6 +69,11 @@ def analysis():
             except OSError:
                 pass
 
+        # ── Reject non-skin images before saving to history ───────────────────
+        if result.get("rejected"):
+            flash(result.get("rejection_reason", "Image could not be analysed. Please upload a clear skin photo."), "warning")
+            return render_template("analysis.html", user=user, scan_count=scan_count, max_free=MAX_FREE_SCANS)
+
         try:
             inserted   = insert_scan_record({
                 "user_id": user.id, "image_filename": filename,
